@@ -93,6 +93,51 @@ eval_log = rlog.getLogger("dqn.eval")
 eval_log.info("Starting evaluation... ")
 ```
 
+
+### How about tracing values at every step?
+
+`RLog` supports a form of caching events traced at every step through the
+`rlog.ValueMetric`. You can configure it like this:
+
+```python
+    ...
+    rlog.ValueMetric("mse_err", metargs=["err"]),
+    ...
+```
+
+and in your hot loop do:
+
+```python
+    # do this at every step, when you want to log `err`.
+    train_log.put(err=err)
+
+    if is logging_time:
+        rlog.trace(step=policy.steps, **rlog.summary())
+```
+
+
+## Logging Levels
+
+The logging levels are now:
+
+| Level          | Numeric value |
+| -------------- |:-------------:|
+| CRITICAL       | 50            |
+| ERROR          | 40            |
+| WARNING        | 30            |
+| INFO           | 20            |
+| **TRACE**      | **15**        |
+| DEBUG          | 10            |
+| NOTSET         | 0             |
+
+- `RLog` is configured with `TRACE` 
+- the `StreamHandler` writing to the console and `FileHandler` writing to the
+the text file are configured as `INFO` in order to avoid dumping the data
+buffered by `rlog.ValueMetric`
+- the structured handlers such as `PickleHandler` and `TensorboardHandler`
+are configured to `TRACE` levels and are logging this data to disk.
+
+
 ## Ok, so what's the trick?
 
 Well the code is largely untested but I plan using it daily so expect many
