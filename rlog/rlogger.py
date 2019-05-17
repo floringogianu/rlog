@@ -8,6 +8,7 @@ from .metrics import (
     SumMetric,
     AvgMetric,
     MaxMetric,
+    ValueMetric,
     FPSMetric,
 )
 
@@ -19,12 +20,12 @@ __all__ = [
     "init",
     "TensorboardHandler",
     "PickleHandler",
+    "Accumulator",
     "BaseMetric",
     "SumMetric",
     "AvgMetric",
     "MaxMetric",
-    # "ValueMetric",
-    "Accumulator",
+    "ValueMetric",
     "FPSMetric",
 ]
 

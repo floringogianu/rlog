@@ -26,12 +26,12 @@ class PickleHandler(logging.Handler):
         data = self._maybe_load(record.name)
 
         # these functions mutate `data`!
-        if isinstance(record.msg, str):
-            self._add_text(record, data)
-        elif isinstance(record.msg, dict):
+        if isinstance(record.msg, dict) and record.levelname == "TRACE":
             self._add_scalars(record, data)
         else:
-            raise TypeError("PickleHandler receives either a string or a dict.")
+            # TODO: need to move this in a formatter!!
+            record.msg = str(record.msg)
+            self._add_text(record, data)
 
         self._save(record.name, data)
 
@@ -67,23 +67,35 @@ class PickleHandler(logging.Handler):
         except Exception as err:
             raise (
                 AttributeError(
-                    "SummaryWriterHandler expects a LogRecord.msg with a "
+                    "PickleHandler expects a LogRecord.msg with a "
                     + "`step` field. Rest of the Exception: "
                     + str(err)
                 )
             )
+
         for k, v in record.msg.items():
             if k != "step":
-                entry = {"step": step, "value": v, "time": record.created}
-                if k in data:
-                    data[k].append(entry)
+                if isinstance(v, list):
+                    step = step - len(v)
+                    entries = [
+                        {"step": step + i, "value": v_, "time": record.created}
+                        for i, v_ in enumerate(v)
+                    ]
                 else:
-                    data[k] = [entry]
+                    entries = [
+                        {"step": step, "value": v, "time": record.created}
+                    ]
+
+                if k in data:
+                    data[k].extend(entries)
+                else:
+                    data[k] = entries
 
 
 class TensorboardHandler(logging.Handler):
     """ A Handler using the Tensorboard SummaryWritter.
     """
+
     def __init__(self, log_dir):
         logging.Handler.__init__(self)
         self.log_dir = log_dir
@@ -96,14 +108,12 @@ class TensorboardHandler(logging.Handler):
             )
 
     def emit(self, record):
-        if isinstance(record.msg, str):
-            self._add_text(record)
-        elif isinstance(record.msg, dict):
+        if isinstance(record.msg, dict) and record.levelname == "TRACE":
             self._add_scalars(record)
         else:
-            raise TypeError(
-                "TensorboardHandler receives either a string or a dict."
-            )
+            # TODO: need to move this in a formatter!!
+            record.msg = str(record.msg)
+            self._add_text(record)
 
     def _add_text(self, record):
         rec_name = record.name.replace(".", "/")
@@ -116,14 +126,20 @@ class TensorboardHandler(logging.Handler):
         except Exception as err:
             raise (
                 AttributeError(
-                    "SummaryWriterHandler expects a LogRecord.msg with a "
+                    "TensorboardHandler expects a LogRecord.msg with a "
                     + "`step` field. Rest of the Exception: "
                     + str(err)
                 )
             )
         for k, v in record.msg.items():
             if k != "step":
-                self.writer.add_scalar(f"{rec_name}/{k}", v, global_step=step)
+                tag = f"{rec_name}/{k}"
+                if isinstance(v, list):
+                    step = step - len(v)
+                    for i, v_ in enumerate(v):
+                        self.writer.add_scalar(tag, v_, global_step=step + i)
+                else:
+                    self.writer.add_scalar(tag, v, global_step=step)
 
     def close(self):
         self.writer.close()

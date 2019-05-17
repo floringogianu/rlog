@@ -50,8 +50,8 @@ class BaseMetric(object):
 
 
 class ValueMetric(BaseMetric):
-    def __init__(self, name, resetable=True, emph=False):
-        BaseMetric.__init__(self, name, resetable, emph)
+    def __init__(self, name, resetable=True, emph=False, metargs=None):
+        BaseMetric.__init__(self, name, resetable, emph, metargs=metargs)
         self._val = []
 
     def accumulate(self, val):
