@@ -33,7 +33,7 @@ __all__ = [
 ROOT = None
 
 
-logging.TRACE = 5
+logging.TRACE = 15
 logging.addLevelName(logging.TRACE, "TRACE")
 
 
@@ -69,14 +69,14 @@ class RLogger(logging.Logger):
         self.summarize = self.accumulator.summarize
 
 
-def init(name, path=None, lvl=logging.TRACE, pickle=True, tensorboard=False):
+def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
     """ Configures a global RLogger.
     """
     global ROOT
 
     logging.setLoggerClass(RLogger)
     ROOT = logging.getLogger(name)
-    ROOT.setLevel(lvl)
+    ROOT.setLevel(logging.TRACE)
 
     formatter = logging.Formatter(
         fmt="%(asctime)s [%(name)5s][%(levelname)7s]: %(message)s",
@@ -85,23 +85,23 @@ def init(name, path=None, lvl=logging.TRACE, pickle=True, tensorboard=False):
 
     ch = logging.StreamHandler()
     ch.setFormatter(formatter)
-    ch.setLevel(lvl)
+    ch.setLevel(level)
     ROOT.addHandler(ch)
 
     if path:
         fh = logging.FileHandler(f"{path}/log.log")
         fh.setFormatter(formatter)
-        fh.setLevel(lvl)
+        fh.setLevel(level)
         ROOT.addHandler(fh)
 
         if pickle:
             ph = PickleHandler(path)
-            ph.setLevel(lvl)
+            ph.setLevel(logging.TRACE)
             ROOT.addHandler(ph)
 
         if tensorboard:
             swh = TensorboardHandler(path)
-            swh.setLevel(lvl)
+            swh.setLevel(logging.TRACE)
             ROOT.addHandler(swh)
 
 
