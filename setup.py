@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-VERSION = '0.1.0'  # single source of truth versioning? :)
+VERSION = '0.2.0'  # single source of truth versioning? :)
 
 print('-- Installing rlog ' + VERSION)
 with open("./rlog/version.py", 'w') as f:
