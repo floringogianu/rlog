@@ -53,16 +53,17 @@ class RLogger(logging.Logger):
             _log_kws = {k: v for k, v in kws.items() if k in self._log_kws}
             self._log(logging.TRACE, kws, args, **_log_kws)
         else:
-            raise ("Call trace with either a message or a dict-like object.")
+            raise TypeError(
+                "Call trace with either a message or a dict-like object."
+            )
 
     def addMetrics(self, metrics):
         # TODO: Not really happy about how adding metrics changes the
         # interface of RLogger, need to thing about something else.
 
         if self.accumulator:
-            raise ("Metrics already set.")
-        else:
-            self.accumulator = Accumulator(metrics)
+            raise "Metrics already set."
+        self.accumulator = Accumulator(metrics)
 
         self.put = self.accumulator.trace
         self.reset = self.accumulator.reset
