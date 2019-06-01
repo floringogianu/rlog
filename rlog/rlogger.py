@@ -1,6 +1,7 @@
+""" RLog definition and configuration."""
+import sys
 import logging
-from typing import NamedTuple
-
+from .filters import MaxLevelFilter
 from .handlers import TensorboardHandler, PickleHandler
 from .metrics import (
     Accumulator,
@@ -84,10 +85,18 @@ def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
         datefmt="%H:%M:%S",
     )
 
-    ch = logging.StreamHandler()
-    ch.setFormatter(formatter)
-    ch.setLevel(level)
-    ROOT.addHandler(ch)
+    stdout_ch = logging.StreamHandler(sys.stdout)
+    stderr_ch = logging.StreamHandler(sys.stderr)
+
+    stdout_ch.addFilter(MaxLevelFilter(logging.WARNING))
+    stdout_ch.setLevel(level)
+    stderr_ch.setLevel(max(level, logging.WARNING))
+
+    stdout_ch.setFormatter(formatter)
+    stderr_ch.setFormatter(formatter)
+
+    ROOT.addHandler(stdout_ch)
+    ROOT.addHandler(stderr_ch)
 
     if path:
         fh = logging.FileHandler(f"{path}/log.log")
