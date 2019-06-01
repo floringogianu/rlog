@@ -3,6 +3,7 @@
 import logging
 import pickle
 from pathlib import Path
+from datetime import datetime
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -21,6 +22,7 @@ class PickleHandler(logging.Handler):
     def __init__(self, log_dir):
         logging.Handler.__init__(self)
         self.log_dir = log_dir
+        self.timestamp = int(datetime.timestamp(datetime.now()))
 
     def emit(self, record):
         data = self._maybe_load(record.name)
@@ -40,7 +42,7 @@ class PickleHandler(logging.Handler):
             If a pickle exists it will be loaded in memory.
         """
         file_name = logger_name.replace(".", "_")
-        file_path = Path(self.log_dir, f"{file_name}.pkl")
+        file_path = Path(self.log_dir, f"{self.timestamp}_{file_name}.pkl")
 
         try:
             with open(file_path, "rb") as f:
@@ -50,7 +52,7 @@ class PickleHandler(logging.Handler):
 
     def _save(self, logger_name, data):
         file_name = logger_name.replace(".", "_")
-        file_path = Path(self.log_dir, f"{file_name}.pkl")
+        file_path = Path(self.log_dir, f"{self.timestamp}_{file_name}.pkl")
 
         with open(file_path, "wb") as f:
             pickle.dump(data, f)
