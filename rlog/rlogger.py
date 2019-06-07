@@ -81,8 +81,9 @@ def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
     ROOT.setLevel(logging.TRACE)
 
     formatter = logging.Formatter(
-        fmt="%(asctime)s [%(name)5s][%(levelname)7s]: %(message)s",
+        fmt="{asctime} [{levelname[0]}] {name}: {message}",
         datefmt="%H:%M:%S",
+        style="{"
     )
 
     stdout_ch = logging.StreamHandler(sys.stdout)
