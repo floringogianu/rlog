@@ -7,8 +7,12 @@ from datetime import datetime
 
 try:
     from torch.utils.tensorboard import SummaryWriter
-except ModuleNotFoundError:
-    pass
+except ImportError:
+    # TODO: the project itself should use logging without messing things out.
+    print(
+        "[WARN] rlog: TensorBoard is available in PyTorch-Nightly (~1.1) "
+        + "and it should be available in newer version."
+    )
 
 
 __all__ = ["PickleHandler", "TensorboardHandler"]
