@@ -17,6 +17,10 @@ from .metrics import (
 __all__ = [
     "getLogger",
     "info",
+    "debug",
+    "warning",
+    "exception",
+    "error",
     "trace",
     "init",
     "TensorboardHandler",
