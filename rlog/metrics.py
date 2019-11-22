@@ -84,13 +84,21 @@ class SumMetric(BaseMetric):
 
 
 class AvgMetric(BaseMetric):
-    def __init__(self, name, resetable=True, emph=False, metargs=None):
+    def __init__(self, name, resetable=True, emph=False, metargs=None, eps=0):
         BaseMetric.__init__(self, name, resetable, emph, metargs=metargs)
         self._counter = 0
+        self._eps = eps
+        self._run_avg = None
 
     @property
     def value(self):
-        return self._val / self._counter
+        avg = self._val / self._counter
+        if self._eps:
+            if self._run_avg is None:
+                self._run_avg = avg
+            self._run_avg = self._eps * avg + (1 - self._eps) * self._run_avg
+            return self._run_avg
+        return avg
 
     def accumulate(self, val, n):
         self._val += val
