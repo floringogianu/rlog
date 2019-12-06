@@ -4,6 +4,7 @@ import logging
 import pickle
 from pathlib import Path
 from datetime import datetime
+import numpy as np
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -80,7 +81,7 @@ class PickleHandler(logging.Handler):
             )
 
         for k, v in record.msg.items():
-            if k != "step":
+            if k not in ("step", "extra"):
                 if isinstance(v, list):
                     step = step - len(v)
                     entries = [
@@ -115,7 +116,7 @@ class TensorboardHandler(logging.Handler):
 
     def emit(self, record):
         if isinstance(record.msg, dict) and record.levelname == "TRACE":
-            self._add_scalars(record)
+            self._add_key_value_items(record)
         else:
             # TODO: need to move this in a formatter!!
             record.msg = str(record.msg)
@@ -123,9 +124,10 @@ class TensorboardHandler(logging.Handler):
 
     def _add_text(self, record):
         rec_name = record.name.replace(".", "/")
-        self.writer.add_text(rec_name, record.msg)
+        tag = f"{rec_name}/stdout"
+        self.writer.add_text(tag, record.msg)
 
-    def _add_scalars(self, record):
+    def _add_key_value_items(self, record):
         rec_name = record.name.replace(".", "/")
         try:
             step = record.msg["step"]
@@ -137,15 +139,36 @@ class TensorboardHandler(logging.Handler):
                     + str(err)
                 )
             )
-        for k, v in record.msg.items():
-            if k != "step":
-                tag = f"{rec_name}/{k}"
-                if isinstance(v, list):
-                    step = step - len(v)
-                    for i, v_ in enumerate(v):
-                        self.writer.add_scalar(tag, v_, global_step=step + i)
+
+        if "extra" in record.msg:
+            tb_types = record.msg["extra"]["tb_types"]
+        else:
+            tb_types = {k: "scalar" for k, v in record.msg.items()}
+
+        for metric, value in record.msg.items():
+            if metric not in ("step", "extra"):
+                tag = f"{rec_name}/{metric}"
+
+                if tb_types[metric] == "scalar":
+                    self._add_scalars(tag, step, value)
+                elif tb_types[metric] == "histogram":
+                    self._add_histogram(tag, step, value)
                 else:
-                    self.writer.add_scalar(tag, v, global_step=step)
+                    raise ValueError("There should be a Tensorboard type.")
+
+    def _add_scalars(self, tag, step, value):
+        if isinstance(value, list):
+            step = step - len(value)
+            for i, v_ in enumerate(value):
+                self.writer.add_scalar(tag, v_, global_step=step + i)
+        else:
+            self.writer.add_scalar(tag, value, global_step=step)
+
+    def _add_histogram(self, tag, step, values):
+        if isinstance(values, list):
+            self.writer.add_histogram(tag, np.array(values), global_step=step)
+        else:
+            raise ValueError("There should be a list of values...")
 
     def close(self):
         self.writer.close()
