@@ -15,12 +15,15 @@ __all__ = [
 
 
 class BaseMetric(object):
-    def __init__(self, name, resetable=True, emph=False, metargs=None):
+    def __init__(
+        self, name, resetable=True, emph=False, metargs=None, tb_type="scalar"
+    ):
         self._name = name
         self._val = 0
         self._resetable = resetable
         self._emph = emph
         self._metargs = metargs
+        self._tb_type = tb_type
 
     @property
     def value(self):
@@ -36,23 +39,30 @@ class BaseMetric(object):
     @property
     def name(self):
         return self._name
-    
+
     @property
     def emph(self):
         return self._emph
-    
+
     @property
     def metargs(self):
         return self._metargs
+
+    @property
+    def tb_type(self):
+        return self._tb_type
 
     def __repr__(self):
         return "%s::%s" % (self.__class__.__name__, self._name)
 
 
 class ValueMetric(BaseMetric):
-    def __init__(self, name, resetable=True, emph=False, metargs=None):
+    def __init__(
+        self, name, resetable=True, emph=False, metargs=None, tb_type="scalar"
+    ):
         BaseMetric.__init__(self, name, resetable, emph, metargs=metargs)
         self._val = []
+        self._tb_type = tb_type
 
     def accumulate(self, val):
         self._val.append(val)
@@ -168,15 +178,19 @@ class Accumulator(object):
             self.metrics = {metrics.name: metrics}
 
         self.console_options = console_options
-    
+
     def summarize(self):
-        return {m.name: m.value for m in self.metrics.values()}
+        payload = {m.name: m.value for m in self.metrics.values()}
+        payload["extra"] = {
+            "tb_types": {m.name: m.tb_type for m in self.metrics.values()}
+        }
+        return payload
 
     def accumulate(self, **kwargs):
         for k, v in kwargs.items():
-            assert k in self.metrics, (
-                f"The metric you are trying to accumulate is not in {self}."
-            )
+            assert (
+                k in self.metrics
+            ), f"The metric you are trying to accumulate is not in {self}."
             if isinstance(v, list):
                 self.metrics[k].accumulate(*v)
             else:
