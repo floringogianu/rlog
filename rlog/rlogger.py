@@ -47,7 +47,7 @@ class RLogger(logging.Logger):
         logging.Logger.__init__(self, log_name)
 
         self.accumulator = None
-        self._log_kws = ("exc_info", "extra", "stack_info")  # small helper
+        self._xtra_kws = ("exc_info", "extra", "stack_info")  # small helper
 
     def trace(self, *args, **kws):
         # We break with the API for now.
@@ -55,8 +55,8 @@ class RLogger(logging.Logger):
         if args:
             self._log(logging.TRACE, args[0], args[1:], **kws)
         elif kws:
-            _log_kws = {k: v for k, v in kws.items() if k in self._log_kws}
-            self._log(logging.TRACE, kws, args, **_log_kws)
+            _xtra_kws = {k: v for k, v in kws.items() if k in self._xtra_kws}
+            self._log(logging.TRACE, kws, args, **_xtra_kws)
         else:
             raise TypeError(
                 "Call trace with either a message or a dict-like object."
@@ -87,7 +87,7 @@ def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
     formatter = logging.Formatter(
         fmt="{asctime} [{levelname[0]}] {name}: {message}",
         datefmt="%H:%M:%S",
-        style="{"
+        style="{",
     )
 
     stdout_ch = logging.StreamHandler(sys.stdout)
