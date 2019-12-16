@@ -16,6 +16,7 @@ from .metrics import (
 
 __all__ = [
     "getLogger",
+    "getRootLogger",
     "info",
     "debug",
     "warning",
@@ -122,6 +123,10 @@ def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
 
 def getLogger(name):
     return logging.getLogger(name)
+
+
+def getRootLogger():
+    return ROOT
 
 
 def debug(msg, *args, **kwargs):
