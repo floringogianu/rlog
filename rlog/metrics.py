@@ -197,14 +197,23 @@ class Accumulator(object):
                 self.metrics[k].accumulate(v)
 
     def trace(self, **kwargs):
-        for metric in self.metrics.values():
-            if metric.metargs:
-                args = self._process(metric.metargs, kwargs)
-                metric.accumulate(*args)
+        for metric in self._updatable_metrics(kwargs):
+            args = self._process(metric.metargs, kwargs)
+            metric.accumulate(*args)
 
     def reset(self):
         for metric in self.metrics.values():
             metric.reset()
+
+    def _updatable_metrics(self, kwargs):
+        """ Return the metrics that have metargs appearing in kwargs
+        """
+        metrics = []
+        for metarg in kwargs.keys():
+            for metric in self.metrics.values():
+                if metarg in metric.metargs:
+                    metrics.append(metric)
+        return set(metrics)
 
     def _process(self, metargs, kwargs):
         args = []
