@@ -171,13 +171,15 @@ FNS = {"clip": clip, "int": int}
 
 
 class Accumulator(object):
-    def __init__(self, metrics, console_options=None):
-        if isinstance(metrics, (tuple, list)):
-            self.metrics = {m.name: m for m in metrics}
-        else:
-            self.metrics = {metrics.name: metrics}
-
+    def __init__(self, *metrics, console_options=None):
+        self.metrics = {}
+        self.add_metrics(*metrics)
         self.console_options = console_options
+
+    def add_metrics(self, *metrics):
+        """ Add metrics to the Accumulator.
+        """
+        self.metrics.update({m.name: m for m in metrics})
 
     def summarize(self):
         payload = {m.name: m.value for m in self.metrics.values()}

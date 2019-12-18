@@ -63,17 +63,20 @@ class RLogger(logging.Logger):
                 "Call trace with either a message or a dict-like object."
             )
 
-    def addMetrics(self, metrics):
+    def add_metrics(self, *metrics):
         # TODO: Not really happy about how adding metrics changes the
         # interface of RLogger, need to thing about something else.
 
-        if self.accumulator:
-            raise "Metrics already set."
-        self.accumulator = Accumulator(metrics)
-
-        self.put = self.accumulator.trace
-        self.reset = self.accumulator.reset
-        self.summarize = self.accumulator.summarize
+        if self.accumulator is None:
+            # configure the Accumulator
+            self.accumulator = Accumulator(*metrics)
+            # and delegate its methods
+            self.put = self.accumulator.trace
+            self.reset = self.accumulator.reset
+            self.summarize = self.accumulator.summarize
+        else:
+            # just add more metrics
+            self.accumulator.add_metrics(*metrics)
 
 
 def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
