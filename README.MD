@@ -1,7 +1,9 @@
 # RLog
 
 
-I got tired of configuring half-baked loggers in my Reinforcement Learning experimets so I wrote `RLog`, a preconfigured logger using Python's `logging`.
+I got tired of configuring half-baked loggers in my Reinforcement Learning
+experimets so I wrote `RLog`, a preconfigured logger using Python's `logging`.
+
 In addition `RLog` makes it easy to log experiment stats in a RL algorithm and
 it can write this structured information to `tensorboard` event files and
 `pickles`. Additional handlers can be easily added.
@@ -59,13 +61,13 @@ Each `Metric` accepts a name and some `metargs` that tells it which arguments
 received by the `put` call bellow to accumulate and summarize.
 
 ```python
-train_log.addMetrics([
+train_log.addMetrics(
     rlog.SumMetric("ep_cnt", resetable=False, metargs=["done"]),
     rlog.AvgMetric("R_per_ep", metargs=["reward", "done"]),
     rlog.AvgMetric("R_per_step", metargs=["reward", 1]),
     rlog.AvgMetric("rw_per_ep", metargs=["clip(reward)", "done"]),
     rlog.FPSMetric("learning_fps", metargs=["frame_no"]),
-])
+)
 ```
 
 And somehwere in your training loop you can do:
