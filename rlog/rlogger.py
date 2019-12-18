@@ -63,7 +63,7 @@ class RLogger(logging.Logger):
                 "Call trace with either a message or a dict-like object."
             )
 
-    def add_metrics(self, *metrics):
+    def addMetrics(self, *metrics):
         # TODO: Not really happy about how adding metrics changes the
         # interface of RLogger, need to thing about something else.
 
