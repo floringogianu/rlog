@@ -52,26 +52,24 @@ def main():
     # that tells it which arguments received by the `put` call bellow
     # to accumulate and summarize.
     train_log.addMetrics(
-        [
-            # counts each time it receives a `done=True`, aka counts episodes
-            rlog.SumMetric("ep_cnt", resetable=False, metargs=["done"]),
-            # sums up all the `reward=value` it receives and divides it
-            # by the number of `done=True`, aka mean reward per episode
-            rlog.AvgMetric("R_per_ep", metargs=["reward", "done"]),
-            # same but keeps a running average instead (experimental).
-            rlog.AvgMetric("RunR", eps=0.9, metargs=["reward", "done"]),
-            # same as above but now we divide by the number of rewards
-            rlog.AvgMetric("R_per_step", metargs=["reward", 1]),
-            # same but with clipped rewards (to +- 1)
-            rlog.AvgMetric("rw_per_ep", metargs=["clip(reward)", "done"]),
-            # computes the no of frames per second
-            rlog.FPSMetric("train_fps", metargs=["frame_no"]),
-            # caches all the values it receives and inserts them into a
-            # tensorboad.summary.histogram every time you call `log.trace`
-            rlog.ValueMetric(
-                "gaussians", metargs=["sample"], tb_type="histogram"
-            ),
-        ]
+        # counts each time it receives a `done=True`, aka counts episodes
+        rlog.SumMetric("ep_cnt", resetable=False, metargs=["done"]),
+        # sums up all the `reward=value` it receives and divides it
+        # by the number of `done=True`, aka mean reward per episode
+        rlog.AvgMetric("R_per_ep", metargs=["reward", "done"]),
+        # same but keeps a running average instead (experimental).
+        rlog.AvgMetric("RunR", eps=0.9, metargs=["reward", "done"]),
+        # same as above but now we divide by the number of rewards
+        rlog.AvgMetric("R_per_step", metargs=["reward", 1]),
+        # same but with clipped rewards (to +- 1)
+        rlog.AvgMetric("rw_per_ep", metargs=["clip(reward)", "done"]),
+        # computes the no of frames per second
+        rlog.FPSMetric("train_fps", metargs=["frame_no"]),
+        # caches all the values it receives and inserts them into a
+        # tensorboad.summary.histogram every time you call `log.trace`
+        rlog.ValueMetric(
+            "gaussians", metargs=["sample"], tb_type="histogram"
+        ),
     )
 
     mean = 0
