@@ -140,10 +140,10 @@ class TensorboardHandler(logging.Handler):
                 )
             )
 
+        tb_types = {k: "scalar" for k, v in record.msg.items() if k != "extra"}
         if "extra" in record.msg:
-            tb_types = record.msg["extra"]["tb_types"]
-        else:
-            tb_types = {k: "scalar" for k, v in record.msg.items()}
+            for metric_name, tb_type in record.msg["extra"]["tb_types"].items():
+                tb_types[metric_name] = tb_type
 
         for metric, value in record.msg.items():
             if metric not in ("step", "extra"):
@@ -166,7 +166,8 @@ class TensorboardHandler(logging.Handler):
 
     def _add_histogram(self, tag, step, values):
         if isinstance(values, list):
-            self.writer.add_histogram(tag, np.array(values), global_step=step)
+            flat = np.hstack(values)  # flatten if that's the case
+            self.writer.add_histogram(tag, flat, global_step=step)
         else:
             raise ValueError("There should be a list of values...")
 
