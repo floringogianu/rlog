@@ -102,7 +102,10 @@ class AvgMetric(BaseMetric):
 
     @property
     def value(self):
-        avg = self._val / self._counter
+        try:
+            avg = self._val / self._counter
+        except ZeroDivisionError as err:
+            raise ZeroDivisionError(f"{str(err)} in {self._name}::AvgMetric")
         if self._eps:
             if self._run_avg is None:
                 self._run_avg = avg
