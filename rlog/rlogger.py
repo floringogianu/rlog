@@ -12,6 +12,7 @@ from .metrics import (
     ValueMetric,
     FPSMetric,
 )
+from .exception_handling import print_fancy_err
 
 
 __all__ = [
@@ -24,6 +25,10 @@ __all__ = [
     "error",
     "trace",
     "init",
+    "addMetrics",
+    "put",
+    "summarize",
+    "reset",
     "TensorboardHandler",
     "PickleHandler",
     "Accumulator",
@@ -140,8 +145,8 @@ def info(msg, *args, **kwargs):
     ROOT.info(msg, *args, **kwargs)
 
 
-def trace(msg, *args, **kwargs):
-    ROOT.info(msg, *args, **kwargs)
+def trace(*args, **kwargs):
+    ROOT.trace(*args, **kwargs)
 
 
 def error(msg, *args, **kwargs):
@@ -154,6 +159,50 @@ def exception(msg, *args, exc_info=True, **kwargs):
 
 def warning(msg, *args, **kwargs):
     ROOT.warning(msg, *args, **kwargs)
+
+
+def addMetrics(*metrics):
+    root = getRootLogger()
+    root.addMetrics(*metrics)
+
+
+def put(**kwargs):
+    root = getRootLogger()
+    try:
+        root.put(**kwargs)
+    except AttributeError as err:
+        print_fancy_err(
+            err,
+            issue="RLog has no attribute `put` untill you add a Metric",
+            fix="You do so by calling `addMetric(...)` first",
+        )
+        raise
+
+
+def summarize():
+    root = getRootLogger()
+    try:
+        return root.summarize()
+    except AttributeError as err:
+        print_fancy_err(
+            err,
+            issue="RLog has no attribute `summarize` untill you add a Metric",
+            fix="You do so by calling `addMetric(...)` first",
+        )
+        raise
+
+
+def reset():
+    root = getRootLogger()
+    try:
+        root.reset()
+    except AttributeError as err:
+        print_fancy_err(
+            err,
+            issue="RLog has no attribute `reset` untill you add a Metric",
+            fix="You do so by calling `addMetric(...)` first",
+        )
+        raise
 
 
 if __name__ == "__main__":

@@ -5,6 +5,8 @@ import pickle
 from pathlib import Path
 from datetime import datetime
 import numpy as np
+import traceback
+from .exception_handling import print_fancy_err
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -71,14 +73,13 @@ class PickleHandler(logging.Handler):
     def _add_scalars(self, record, data):
         try:
             step = record.msg["step"]
-        except Exception as err:
-            raise (
-                AttributeError(
-                    "PickleHandler expects a LogRecord.msg with a "
-                    + "`step` field. Rest of the Exception: "
-                    + str(err)
-                )
+        except KeyError as err:
+            print_fancy_err(
+                err,
+                issue="PickeHandler expects a LogRecord.msg with a `step` field",
+                fix="Make sure your call to rlog.trace() includes the `step` kw",
             )
+            raise
 
         for k, v in record.msg.items():
             if k not in ("step", "extra"):
@@ -100,7 +101,7 @@ class PickleHandler(logging.Handler):
 
 
 class TensorboardHandler(logging.Handler):
-    """ A Handler using the Tensorboard SummaryWritter.
+    """ A Handler using the Tensorboard SummaryWriter.
     """
 
     def __init__(self, log_dir):
@@ -109,10 +110,12 @@ class TensorboardHandler(logging.Handler):
         try:
             self.writer = SummaryWriter(log_dir)
         except NameError as err:
-            raise NameError(
-                "PyTorch >= 1.1.0 is required for logging to Tensorboard."
-                + str(err)
+            print_fancy_err(
+                err,
+                issue="PyTorch >= 1.1.0 is required for logging to Tensorboard",
+                fix="pip install tensorboard; make sure PyTorch version is correct",
             )
+            raise
 
     def emit(self, record):
         if isinstance(record.msg, dict) and record.levelname == "TRACE":
@@ -131,14 +134,13 @@ class TensorboardHandler(logging.Handler):
         rec_name = record.name.replace(".", "/")
         try:
             step = record.msg["step"]
-        except Exception as err:
-            raise (
-                AttributeError(
-                    "TensorboardHandler expects a LogRecord.msg with a "
-                    + "`step` field. Rest of the Exception: "
-                    + str(err)
-                )
+        except KeyError as err:
+            print_fancy_err(
+                err,
+                issue="TensorboardHandler expects a LogRecord.msg with a `step` field",
+                fix="Make sure your call to rlog.trace() includes the `step` kw",
             )
+            raise
 
         tb_types = {k: "scalar" for k, v in record.msg.items() if k != "extra"}
         if "extra" in record.msg:
