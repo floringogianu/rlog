@@ -37,25 +37,21 @@ def main():
     rlog.info("Logging application level stuff.")
     rlog.info("Log artifacts will be saved in %s", experiment_path)
 
-    rlog.addMetrics(
-        # counts each time it receives a `done=True`, aka counts episodes
-        rlog.SumMetric("ep_cnt", resetable=False, metargs=["done"]),
-        # sums up all the `reward=value` it receives and divides it
-        # by the number of `done=True`, aka mean reward per episode
-        rlog.AvgMetric("R_per_ep", metargs=["reward", "done"]),
-    )
+    # create a new logger that will log training events
+    train_log = rlog.getLogger("dqn.train")
+    train_log.info("Starting training... ")
 
     for step in range(5):
         # probably not a good idea to call this every step if it is a hot loop?
         # also this will not be logged to the console or to the text file
         # since the default log-level for these two is INFO.
-        rlog.trace(step=step, aux_loss=7.23 - step)
+        train_log.trace(step=step, aux_loss=7.23 - step)
 
     # but we can register metrics that will accumulate traced events
     # and summarize them. Each Metric accepts a name and some metargs
     # that tells it which arguments received by the `put` call bellow
     # to accumulate and summarize.
-    rlog.addMetrics(
+    train_log.addMetrics(
         # counts each time it receives a `done=True`, aka counts episodes
         rlog.SumMetric("ep_cnt", resetable=False, metargs=["done"]),
         # sums up all the `reward=value` it receives and divides it
@@ -71,7 +67,9 @@ def main():
         rlog.FPSMetric("train_fps", metargs=["frame_no"]),
         # caches all the values it receives and inserts them into a
         # tensorboad.summary.histogram every time you call `log.trace`
-        rlog.ValueMetric("gaussians", metargs=["sample"], tb_type="histogram"),
+        rlog.ValueMetric(
+            "gaussians", metargs=["sample"], tb_type="histogram"
+        ),
     )
 
     mean = 0
@@ -85,23 +83,27 @@ def main():
 
         # simply trace all the values you passed as `metargs` above.
         # the logger will know how to dispatch each argument.
-        rlog.put(reward=reward, done=done, frame_no=1, sample=sample)
+        train_log.put(reward=reward, done=done, frame_no=1, sample=sample)
 
         if step % 10_000 == 0:
             # this is the call that dumps everything to the logger.
-            summary = rlog.summarize()
-            rlog.trace(step=step, **summary)
-            rlog.info(
+            summary = train_log.summarize()
+            train_log.trace(step=step, **summary)
+            train_log.info(
                 "{0:6d}, ep {ep_cnt:3d}, RunR/ep{RunR:8.2f}  |  rw/ep{R_per_ep:8.2f}.".format(
                     step, **summary
                 )
             )
-            rlog.reset()
+            train_log.reset()
             mean += 1
 
-    rlog.trace("But we can continue tracing stuff manually...")
+    train_log.trace("But we can continue tracing stuff manually...")
     # inlcuding structured stuff as long as we provide a `step` keyarg
-    rlog.trace(step=step, aux_loss=0.23)
+    train_log.trace(step=step, aux_loss=0.23)
+
+    # We can also configure an evaluation logger.
+    eval_log = rlog.getLogger("dqn.eval")
+    eval_log.info("Starting evaluation... ")
 
     rlog.info("Run `tensorboard --logdir sota_results` to see the results.")
 
