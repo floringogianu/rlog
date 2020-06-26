@@ -13,6 +13,7 @@ from .metrics import (
     FPSMetric,
 )
 from .exception_handling import print_fancy_err
+from .formatters import SummaryFormatter
 
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     "addMetrics",
     "put",
     "summarize",
+    "traceAndLog",
     "reset",
     "TensorboardHandler",
     "PickleHandler",
@@ -53,6 +55,7 @@ class RLogger(logging.Logger):
         logging.Logger.__init__(self, log_name)
 
         self.accumulator = None
+        self.put, self.reset, self.summarize, self.fmt = None, None, None, None
         self._xtra_kws = ("exc_info", "extra", "stack_info")  # small helper
 
     def trace(self, *args, **kws):
@@ -82,6 +85,20 @@ class RLogger(logging.Logger):
         else:
             # just add more metrics
             self.accumulator.add_metrics(*metrics)
+
+    def traceAndLog(self, step, with_reset=True):
+        """ Calls both trace and summarize on the `Accumulator.summarize()`
+        result. Then it calls reset.
+        """
+        if self.fmt is None:
+            self.fmt = SummaryFormatter()
+
+        summary = self.summarize()
+        self.info(self.fmt(step=step, **summary))
+        self.trace(step=step, **summary)
+        if with_reset:
+            self.reset()
+        return summary
 
 
 def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
@@ -187,6 +204,19 @@ def summarize():
         print_fancy_err(
             err,
             issue="RLog has no attribute `summarize` untill you add a Metric",
+            fix="You do so by calling `addMetric(...)` first",
+        )
+        raise
+
+
+def traceAndLog(step, with_reset=True):
+    root = getRootLogger()
+    try:
+        root.traceAndLog(step, with_reset=with_reset)
+    except AttributeError as err:
+        print_fancy_err(
+            err,
+            issue="RLog has no attribute `traceAndLog` untill you add a Metric",
             fix="You do so by calling `addMetric(...)` first",
         )
         raise

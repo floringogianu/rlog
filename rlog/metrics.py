@@ -1,6 +1,7 @@
 import time
 import math
 import re
+from .exception_handling import print_fancy_err
 
 
 __all__ = [
@@ -24,6 +25,7 @@ class BaseMetric(object):
         self._emph = emph
         self._metargs = metargs
         self._tb_type = tb_type
+        self._updated = False
 
     @property
     def value(self):
@@ -34,11 +36,15 @@ class BaseMetric(object):
 
     def reset(self):
         if self._resetable:
-            self._val = 0
+            self._updated = False
 
     @property
     def name(self):
         return self._name
+
+    @property
+    def updated(self):
+        return self._updated
 
     @property
     def emph(self):
@@ -66,10 +72,12 @@ class ValueMetric(BaseMetric):
 
     def accumulate(self, val):
         self._val.append(val)
+        self._updated = True
 
     def reset(self):
+        super().reset()
         if self._resetable:
-            self._val.clear()
+            self._val = []
 
 
 class MaxMetric(BaseMetric):
@@ -79,8 +87,10 @@ class MaxMetric(BaseMetric):
 
     def accumulate(self, val):
         self._val = max(self._val, val)
+        self._updated = True
 
     def reset(self):
+        super().reset()
         if self._resetable:
             self._val = -math.inf
 
@@ -91,6 +101,12 @@ class SumMetric(BaseMetric):
 
     def accumulate(self, val):
         self._val += val
+        self._updated = True
+
+    def reset(self):
+        super().reset()
+        if self._resetable:
+            self._val = 0
 
 
 class AvgMetric(BaseMetric):
@@ -102,10 +118,7 @@ class AvgMetric(BaseMetric):
 
     @property
     def value(self):
-        try:
-            avg = self._val / self._counter
-        except ZeroDivisionError as err:
-            raise ZeroDivisionError(f"{str(err)} in {self._name}::AvgMetric")
+        avg = self._val / self._counter
         if self._eps:
             if self._run_avg is None:
                 self._run_avg = avg
@@ -116,8 +129,10 @@ class AvgMetric(BaseMetric):
     def accumulate(self, val, n):
         self._val += val
         self._counter += n
+        self._updated = True
 
     def reset(self):
+        super().reset()
         if self._resetable:
             self._val = 0
             self._counter = 0
@@ -140,8 +155,10 @@ class EpisodicMetric(BaseMetric):
             self._val += self.partial_val + val
             self.counter += n
             self.partial_val = 0
+        self._updated = True
 
     def reset(self):
+        super().reset()
         if self._resetable:
             self._val = 0
             self.counter = 0
@@ -159,8 +176,10 @@ class FPSMetric(BaseMetric):
 
     def accumulate(self, val, *args):
         self._val += val
+        self._updated = True
 
     def reset(self):
+        super().reset()
         if self._resetable:
             self._val = 0
             self._start = time.time()
@@ -185,7 +204,11 @@ class Accumulator(object):
         self.metrics.update({m.name: m for m in metrics})
 
     def summarize(self):
-        payload = {m.name: m.value for m in self.metrics.values()}
+        # check wether the metric has been updated between two resets.
+        updated_metrics = [m for m in self.metrics.values() if m.updated]
+        # and get the return values of each metric
+        payload = {m.name: m.value for m in updated_metrics}
+        # add the tensorboard types
         payload["extra"] = {
             "tb_types": {m.name: m.tb_type for m in self.metrics.values()}
         }
@@ -247,13 +270,11 @@ def main():
     N = 200
 
     group = Accumulator(
-        metrics=[
-            AvgMetric("R_per_ep"),
-            # EpisodicMetric("episodicR"),
-            AvgMetric("rw_per_ep"),
-            SumMetric("ep_cnt", resetable=False),
-            FPSMetric("train_fps"),
-        ]
+        AvgMetric("R_per_ep"),
+        # EpisodicMetric("episodicR"),
+        AvgMetric("rw_per_ep"),
+        SumMetric("ep_cnt", resetable=False),
+        FPSMetric("train_fps"),
     )
     print(group)
 
@@ -289,13 +310,11 @@ def fancy():
     # define the metrics you want to log and the arguments these metrics
     # should trace. It evens supports functions, such as "clip(x)".
     log = Accumulator(
-        metrics=[
-            SumMetric("ep_cnt", resetable=False, metargs=["done"]),
-            AvgMetric("R_per_ep", metargs=["reward", "done"]),
-            AvgMetric("R_per_step", metargs=["reward", 1]),
-            AvgMetric("rw_per_ep", metargs=["clip(reward)", "done"]),
-            FPSMetric("train_fps", metargs=["frame_no"]),
-        ]
+        SumMetric("ep_cnt", resetable=False, metargs=["done"]),
+        AvgMetric("R_per_ep", metargs=["reward", "done"]),
+        AvgMetric("R_per_step", metargs=["reward", 1]),
+        AvgMetric("rw_per_ep", metargs=["clip(reward)", "done"]),
+        FPSMetric("train_fps", metargs=["frame_no"]),
     )
 
     # start a game
