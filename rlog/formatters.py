@@ -20,7 +20,7 @@ class SummaryFormatter:
         }
         to_string.pop("step")
         fmt = ", ".join([f"{k}={{{k}:2.2f}}" for k in to_string.keys()])
-        return "[{step:06d}]   " + fmt
+        return "[{step:06d}] " + fmt
 
     def __call__(self, **summary):
         fmt = self._compute_string_format(summary)
