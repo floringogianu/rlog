@@ -1,4 +1,5 @@
 """ RLog definition and configuration."""
+import datetime
 import sys
 import logging
 from .filters import MaxLevelFilter
@@ -67,9 +68,7 @@ class RLogger(logging.Logger):
             _xtra_kws = {k: v for k, v in kws.items() if k in self._xtra_kws}
             self._log(logging.TRACE, kws, args, **_xtra_kws)
         else:
-            raise TypeError(
-                "Call trace with either a message or a dict-like object."
-            )
+            raise TypeError("Call trace with either a message or a dict-like object.")
 
     def addMetrics(self, *metrics):
         # TODO: Not really happy about how adding metrics changes the
@@ -101,7 +100,25 @@ class RLogger(logging.Logger):
         return summary
 
 
-def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
+class TimeFilter(logging.Filter):
+    """ If there is another type of object that processes records, it might be used
+        instead of this.
+    """
+
+    def filter(self, record):
+        duration = datetime.datetime.utcfromtimestamp(record.relativeCreated / 1000.0)
+        record.relative = duration.strftime("%H:%M:%S")
+        return True
+
+
+def init(
+    name,
+    path=None,
+    level=logging.INFO,
+    pickle=True,
+    tensorboard=False,
+    relative_time=False,
+):
     """ Configures a global RLogger.
     """
     global ROOT
@@ -110,11 +127,13 @@ def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
     ROOT = logging.getLogger(name)
     ROOT.setLevel(logging.TRACE)
 
-    formatter = logging.Formatter(
-        fmt="{asctime} [{levelname[0]}] {name}: {message}",
-        datefmt="%H:%M:%S",
-        style="{",
-    )
+    if relative_time:
+        fmt = "{relative} [{levelname[0]}] {name}: {message}"
+        ROOT.addFilter(TimeFilter())
+    else:
+        fmt = "{asctime} [{levelname[0]}] {name}: {message}"
+
+    formatter = logging.Formatter(fmt=fmt, datefmt="%H:%M:%S", style="{",)
 
     stdout_ch = logging.StreamHandler(sys.stdout)
     stderr_ch = logging.StreamHandler(sys.stderr)
