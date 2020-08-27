@@ -105,19 +105,24 @@ class TimeFilter(logging.Filter):
         instead of this.
     """
 
+    def __init__(self, datefmt="%H:%M:%S"):
+        super().__init__()
+        self._datefmt = datefmt
+
     def filter(self, record):
         duration = datetime.datetime.utcfromtimestamp(record.relativeCreated / 1000.0)
-        record.relative = duration.strftime("%H:%M:%S")
+        record.relative = duration.strftime(self._datefmt)
         return True
 
 
-def init(
+def init(  # pylint: disable=bad-continuation
     name,
     path=None,
     level=logging.INFO,
     pickle=True,
     tensorboard=False,
     relative_time=False,
+    datefmt="%H:%M:%S",
 ):
     """ Configures a global RLogger.
     """
@@ -129,11 +134,11 @@ def init(
 
     if relative_time:
         fmt = "{relative} [{levelname[0]}] {name}: {message}"
-        ROOT.addFilter(TimeFilter())
+        ROOT.addFilter(TimeFilter(datefmt=datefmt))
     else:
         fmt = "{asctime} [{levelname[0]}] {name}: {message}"
 
-    formatter = logging.Formatter(fmt=fmt, datefmt="%H:%M:%S", style="{",)
+    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt, style="{",)
 
     stdout_ch = logging.StreamHandler(sys.stdout)
     stderr_ch = logging.StreamHandler(sys.stderr)
