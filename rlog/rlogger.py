@@ -123,6 +123,7 @@ def init(  # pylint: disable=bad-continuation
     tensorboard=False,
     relative_time=False,
     datefmt="%H:%M:%S",
+    timestamp=None,
 ):
     """ Configures a global RLogger.
     """
@@ -160,7 +161,7 @@ def init(  # pylint: disable=bad-continuation
         ROOT.addHandler(fh)
 
         if pickle:
-            ph = PickleHandler(path)
+            ph = PickleHandler(path, timestamp=timestamp)
             ph.setLevel(logging.TRACE)
             ROOT.addHandler(ph)
 
