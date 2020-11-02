@@ -124,6 +124,7 @@ def init(  # pylint: disable=bad-continuation
     relative_time=False,
     datefmt="%H:%M:%S",
     timestamp=None,
+    prefix=None
 ):
     """ Configures a global RLogger.
     """
@@ -138,6 +139,9 @@ def init(  # pylint: disable=bad-continuation
         ROOT.addFilter(TimeFilter(datefmt=datefmt))
     else:
         fmt = "{asctime} [{levelname[0]}] {name}: {message}"
+    
+    if prefix:
+        fmt = prefix + fmt
 
     formatter = logging.Formatter(fmt=fmt, datefmt=datefmt, style="{",)
 
