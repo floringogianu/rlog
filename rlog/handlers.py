@@ -26,10 +26,13 @@ class PickleHandler(logging.Handler):
     TODO: Check the performance?
     """
 
-    def __init__(self, log_dir):
+    def __init__(self, log_dir, timestamp=None):
         logging.Handler.__init__(self)
         self.log_dir = log_dir
-        self.timestamp = int(datetime.timestamp(datetime.now()))
+        if timestamp is None:
+            self.timestamp = int(datetime.timestamp(datetime.now()))
+        else:
+            self.timestamp = int(timestamp)
 
     def emit(self, record):
         data = self._maybe_load(record.name)
@@ -90,9 +93,7 @@ class PickleHandler(logging.Handler):
                         for i, v_ in enumerate(v)
                     ]
                 else:
-                    entries = [
-                        {"step": step, "value": v, "time": record.created}
-                    ]
+                    entries = [{"step": step, "value": v, "time": record.created}]
 
                 if k in data:
                     data[k].extend(entries)

@@ -1,4 +1,5 @@
 """ RLog definition and configuration."""
+import datetime
 import sys
 import logging
 from .filters import MaxLevelFilter
@@ -67,9 +68,7 @@ class RLogger(logging.Logger):
             _xtra_kws = {k: v for k, v in kws.items() if k in self._xtra_kws}
             self._log(logging.TRACE, kws, args, **_xtra_kws)
         else:
-            raise TypeError(
-                "Call trace with either a message or a dict-like object."
-            )
+            raise TypeError("Call trace with either a message or a dict-like object.")
 
     def addMetrics(self, *metrics):
         # TODO: Not really happy about how adding metrics changes the
@@ -101,7 +100,32 @@ class RLogger(logging.Logger):
         return summary
 
 
-def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
+class TimeFilter(logging.Filter):
+    """ If there is another type of object that processes records, it might be used
+        instead of this.
+    """
+
+    def __init__(self, datefmt="%H:%M:%S"):
+        super().__init__()
+        self._datefmt = datefmt
+
+    def filter(self, record):
+        duration = datetime.datetime.utcfromtimestamp(record.relativeCreated / 1000.0)
+        record.relative = duration.strftime(self._datefmt)
+        return True
+
+
+def init(  # pylint: disable=bad-continuation
+    name,
+    path=None,
+    level=logging.INFO,
+    pickle=True,
+    tensorboard=False,
+    relative_time=False,
+    datefmt="%H:%M:%S",
+    timestamp=None,
+    prefix=None
+):
     """ Configures a global RLogger.
     """
     global ROOT
@@ -110,11 +134,16 @@ def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
     ROOT = logging.getLogger(name)
     ROOT.setLevel(logging.TRACE)
 
-    formatter = logging.Formatter(
-        fmt="{asctime} [{levelname[0]}] {name}: {message}",
-        datefmt="%H:%M:%S",
-        style="{",
-    )
+    if relative_time:
+        fmt = "{relative} [{levelname[0]}] {name}: {message}"
+        ROOT.addFilter(TimeFilter(datefmt=datefmt))
+    else:
+        fmt = "{asctime} [{levelname[0]}] {name}: {message}"
+    
+    if prefix:
+        fmt = prefix + fmt
+
+    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt, style="{",)
 
     stdout_ch = logging.StreamHandler(sys.stdout)
     stderr_ch = logging.StreamHandler(sys.stderr)
@@ -136,7 +165,7 @@ def init(name, path=None, level=logging.INFO, pickle=True, tensorboard=False):
         ROOT.addHandler(fh)
 
         if pickle:
-            ph = PickleHandler(path)
+            ph = PickleHandler(path, timestamp=timestamp)
             ph.setLevel(logging.TRACE)
             ROOT.addHandler(ph)
 
