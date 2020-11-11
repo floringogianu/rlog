@@ -137,6 +137,7 @@ def init(  # pylint: disable=bad-continuation
     if relative_time:
         fmt = "{relative} [{levelname[0]}] {name}: {message}"
         ROOT.addFilter(TimeFilter(datefmt=datefmt))
+        ROOT._add_time_filter = datefmt
     else:
         fmt = "{asctime} [{levelname[0]}] {name}: {message}"
     
@@ -178,7 +179,8 @@ def init(  # pylint: disable=bad-continuation
 def getLogger(name):
     logger = logging.getLogger(name)
     if logger != ROOT:
-        logger.addFilter(TimeFilter(datefmt=datefmt))
+        if ROOT._add_time_filter:
+            logger.addFilter(TimeFilter(datefmt=ROOT._add_time_filter))
     return logger
 
 
