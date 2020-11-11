@@ -179,6 +179,7 @@ def init(  # pylint: disable=bad-continuation
 def getLogger(name):
     logger = logging.getLogger(name)
     if logger != ROOT:
+        # If we added a time filter, we added here too
         if ROOT._add_time_filter:
             logger.addFilter(TimeFilter(datefmt=ROOT._add_time_filter))
     return logger
