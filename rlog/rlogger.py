@@ -176,7 +176,10 @@ def init(  # pylint: disable=bad-continuation
 
 
 def getLogger(name):
-    return logging.getLogger(name)
+    logger = logging.getLogger(name)
+    if logger != ROOT:
+        logger.addFilter(TimeFilter(datefmt=datefmt))
+    return logger
 
 
 def getRootLogger():
