@@ -124,7 +124,7 @@ def init(  # pylint: disable=bad-continuation
     relative_time=False,
     datefmt="%H:%M:%S",
     timestamp=None,
-    prefix=None
+    prefix=None,
 ):
     """ Configures a global RLogger.
     """
@@ -136,10 +136,9 @@ def init(  # pylint: disable=bad-continuation
 
     if relative_time:
         fmt = "{relative} [{levelname[0]}] {name}: {message}"
-        ROOT.addFilter(TimeFilter(datefmt=datefmt))
     else:
         fmt = "{asctime} [{levelname[0]}] {name}: {message}"
-    
+
     if prefix:
         fmt = prefix + fmt
 
@@ -148,10 +147,17 @@ def init(  # pylint: disable=bad-continuation
     stdout_ch = logging.StreamHandler(sys.stdout)
     stderr_ch = logging.StreamHandler(sys.stderr)
 
+    # add relative time filter
+    if relative_time:
+        stdout_ch.addFilter(TimeFilter(datefmt=datefmt))
+        stderr_ch.addFilter(TimeFilter(datefmt=datefmt))
+
+    # add levels
     stdout_ch.addFilter(MaxLevelFilter(logging.WARNING))
     stdout_ch.setLevel(level)
     stderr_ch.setLevel(max(level, logging.WARNING))
 
+    # set the formatter
     stdout_ch.setFormatter(formatter)
     stderr_ch.setFormatter(formatter)
 
