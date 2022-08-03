@@ -247,7 +247,7 @@ def summarize():
 def traceAndLog(step, with_reset=True):
     root = getRootLogger()
     try:
-        root.traceAndLog(step, with_reset=with_reset)
+        return root.traceAndLog(step, with_reset=with_reset)
     except AttributeError as err:
         print_fancy_err(
             err,
