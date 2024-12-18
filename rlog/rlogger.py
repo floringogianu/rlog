@@ -129,6 +129,7 @@ def init(  # pylint: disable=bad-continuation
     """ Configures a global RLogger.
     """
     global ROOT
+    del ROOT
 
     logging.setLoggerClass(RLogger)
     ROOT = logging.getLogger(name)
