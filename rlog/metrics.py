@@ -5,14 +5,20 @@ from .exception_handling import print_fancy_err
 
 
 __all__ = [
-    "BaseMetric",
-    "SumMetric",
-    "AvgMetric",
-    "MaxMetric",
-    "ValueMetric",
     "Accumulator",
+    "BaseMetric",
+    "AvgMetric",
+    "EWMAvgMetric",
     "FPSMetric",
+    "MaxMetric",
+    "SumMetric",
+    "ValueMetric",
 ]
+
+
+"""TODO: needs refactoring, class hierarchy makes no sense:
+    - why reset does not reset _val in BaseMetric?
+"""
 
 
 class BaseMetric(object):
@@ -110,21 +116,13 @@ class SumMetric(BaseMetric):
 
 
 class AvgMetric(BaseMetric):
-    def __init__(self, name, resetable=True, emph=False, metargs=None, eps=0):
+    def __init__(self, name, resetable=True, emph=False, metargs=None):
         BaseMetric.__init__(self, name, resetable, emph, metargs=metargs)
         self._counter = 0
-        self._eps = eps
-        self._run_avg = None
 
     @property
     def value(self):
-        avg = self._val / self._counter
-        if self._eps:
-            if self._run_avg is None:
-                self._run_avg = avg
-            self._run_avg = self._eps * avg + (1 - self._eps) * self._run_avg
-            return self._run_avg
-        return avg
+        return self._val / self._counter
 
     def accumulate(self, val, n):
         self._val += val
@@ -136,6 +134,38 @@ class AvgMetric(BaseMetric):
         if self._resetable:
             self._val = 0
             self._counter = 0
+
+
+class EWMAvgMetric(BaseMetric):
+    """An exponential weighted moving average of the AverageMetric. Instead of
+    directly returning the current value of the AverageMetric it computes a
+    smoothed version of the previous values.
+    """
+    def __init__(self, name, emph=False, metargs=None, beta=0.1):
+        BaseMetric.__init__(self, name, False, emph, metargs=metargs)
+        assert 0 < beta < 1, "β has to be between 0 and 1."
+        self._beta = beta
+        self._val = None
+        self._avg = AvgMetric(name, True, emph, metargs)
+
+    @property
+    def value(self):
+        β = self._beta
+        # TODO: this might be buggy
+        # only compute the EWM if there are averages to report.
+        if self._avg.updated:
+            val = self._avg.value
+            self._avg.reset()
+            self._val = val if self._val is None else self._val * β + val * (1-β)
+        return self._val
+
+    def accumulate(self, val, n=1):
+        self._avg.accumulate(val, n)
+        self._updated = True
+
+    def reset(self):
+        super().reset()
+        self._avg.reset()
 
 
 class EpisodicMetric(BaseMetric):

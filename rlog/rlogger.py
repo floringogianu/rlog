@@ -7,11 +7,12 @@ from .handlers import TensorboardHandler, PickleHandler
 from .metrics import (
     Accumulator,
     BaseMetric,
-    SumMetric,
     AvgMetric,
-    MaxMetric,
-    ValueMetric,
+    EWMAvgMetric,
     FPSMetric,
+    MaxMetric,
+    SumMetric,
+    ValueMetric,
 )
 from .exception_handling import print_fancy_err
 from .formatters import SummaryFormatter
@@ -38,6 +39,7 @@ __all__ = [
     "BaseMetric",
     "SumMetric",
     "AvgMetric",
+    "EWMAvgMetric",
     "MaxMetric",
     "ValueMetric",
     "FPSMetric",

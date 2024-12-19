@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 # PATCH version when you make backwards compatible bug fixes.
 # Labels for pre-releases such as `1.0.0-alpha`.
 
-VERSION = '1.0.0-alpha'  # single source of truth versioning? :)
+VERSION = '1.1.0-alpha'  # single source of truth versioning? :)
 
 print('-- Installing rlog ' + VERSION)
 with open("./rlog/version.py", 'w') as f:

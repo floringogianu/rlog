@@ -33,7 +33,7 @@ def main():
     # get the root logger, preconfigured to log to the console,
     # to a text file, a pickle and a tensorboard protobuf.
     experiment_path = get_experiment_path()
-    rlog.init("dqn", path=experiment_path, tensorboard=True)
+    rlog.init("dqn", path=experiment_path, tensorboard=False)
     rlog.info("Logging application level stuff.")
     rlog.info("Log artifacts will be saved in %s", experiment_path)
 
@@ -42,7 +42,7 @@ def main():
         rlog.SumMetric("ep_cnt", resetable=False, metargs=["done"]),
         # sums up all the `reward=value` it receives and divides it
         # by the number of `done=True`, aka mean reward per episode
-        rlog.AvgMetric("R_per_ep", metargs=["reward", "done"]),
+        rlog.AvgMetric("R/ep", metargs=["reward", "done"]),
     )
 
     for step in range(5):
@@ -60,13 +60,13 @@ def main():
         rlog.SumMetric("ep_cnt", resetable=False, metargs=["done"]),
         # sums up all the `reward=value` it receives and divides it
         # by the number of `done=True`, aka mean reward per episode
-        rlog.AvgMetric("R_per_ep", metargs=["reward", "done"]),
+        rlog.AvgMetric("R/ep", metargs=["reward", "done"]),
         # same but keeps a running average instead (experimental).
-        rlog.AvgMetric("RunR", eps=0.9, metargs=["reward", "done"]),
+        rlog.EWMAvgMetric("ewm R/ep", metargs=["reward", "done"], beta=0.6),
         # same as above but now we divide by the number of rewards
-        rlog.AvgMetric("R_per_step", metargs=["reward", 1]),
+        rlog.AvgMetric("R/step", metargs=["reward", 1]),
         # same but with clipped rewards (to +- 1)
-        rlog.AvgMetric("rw_per_ep", metargs=["clip(reward)", "done"]),
+        rlog.AvgMetric("clip R/ep", metargs=["clip(reward)", "done"]),
         # computes the no of frames per second
         rlog.FPSMetric("train_fps", metargs=["frame_no"]),
         # caches all the values it receives and inserts them into a
@@ -89,14 +89,15 @@ def main():
 
         if step % 10_000 == 0:
             # this is the call that dumps everything to the logger.
-            summary = rlog.summarize()
-            rlog.trace(step=step, **summary)
-            rlog.info(
-                "{0:6d}, ep {ep_cnt:3d}, RunR/ep{RunR:8.2f}  |  rw/ep{R_per_ep:8.2f}.".format(
-                    step, **summary
-                )
-            )
-            rlog.reset()
+
+            # summary = rlog.summarize()
+            # rlog.trace(step=step, **summary)
+            # rlog.info(
+            #     "{0:6d}, ep {ep_cnt:3d}, RunR/ep{RunR:8.2f}  |  rw/ep{R_per_ep:8.2f}.".format(
+            #         step, **summary
+            #     )
+            # )
+            rlog.traceAndLog(step)
             mean += 1
 
     rlog.trace("But we can continue tracing stuff manually...")
