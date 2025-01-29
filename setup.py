@@ -1,5 +1,4 @@
-from setuptools import setup, find_packages
-
+from setuptools import find_packages, setup
 
 # Following semver semantics:
 # MAJOR version when you make incompatible API changes,
@@ -7,21 +6,21 @@ from setuptools import setup, find_packages
 # PATCH version when you make backwards compatible bug fixes.
 # Labels for pre-releases such as `1.0.0-alpha`.
 
-VERSION = '1.1.0-alpha'  # single source of truth versioning? :)
+VERSION = "1.1.1-alpha"  # single source of truth versioning? :)
 
-print('-- Installing rlog ' + VERSION)
-with open("./rlog/version.py", 'w') as f:
+print("-- Installing rlog " + VERSION)
+with open("./rlog/version.py", "w") as f:
     f.write("__version__ = '{}'\n".format(VERSION))
 
 # package setup
 setup(
-    name='rlog',
+    name="rlog",
     version=VERSION,
-    description='A simple logger for reinforcement learning.',
-    url='https://github.com/floringogianu/rlog',
-    author='Florin Gogianu',
-    author_email='florin.gogianu@gmail.com',
-    license='MIT',
+    description="A simple logger for reinforcement learning.",
+    url="https://github.com/floringogianu/rlog",
+    author="Florin Gogianu",
+    author_email="florin.gogianu@gmail.com",
+    license="MIT",
     packages=find_packages(),
     zip_safe=False,
     # install_requires=[],
