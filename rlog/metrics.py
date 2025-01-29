@@ -1,13 +1,11 @@
-import time
 import math
 import re
-from .exception_handling import print_fancy_err
-
+import time
 
 __all__ = [
     "Accumulator",
-    "BaseMetric",
     "AvgMetric",
+    "BaseMetric",
     "EWMAvgMetric",
     "FPSMetric",
     "MaxMetric",
@@ -122,6 +120,8 @@ class AvgMetric(BaseMetric):
 
     @property
     def value(self):
+        if self._counter == 0:
+            return self._val
         return self._val / self._counter
 
     def accumulate(self, val, n):
@@ -141,6 +141,7 @@ class EWMAvgMetric(BaseMetric):
     directly returning the current value of the AverageMetric it computes a
     smoothed version of the previous values.
     """
+
     def __init__(self, name, emph=False, metargs=None, beta=0.1):
         BaseMetric.__init__(self, name, False, emph, metargs=metargs)
         assert 0 < beta < 1, "β has to be between 0 and 1."
@@ -156,7 +157,7 @@ class EWMAvgMetric(BaseMetric):
         if self._avg.updated:
             val = self._avg.value
             self._avg.reset()
-            self._val = val if self._val is None else self._val * β + val * (1-β)
+            self._val = val if self._val is None else self._val * β + val * (1 - β)
         return self._val
 
     def accumulate(self, val, n=1):
@@ -176,6 +177,8 @@ class EpisodicMetric(BaseMetric):
 
     @property
     def value(self):
+        if self.counter == 0:
+            return self._val
         return self._val / self.counter
 
     def accumulate(self, val, n=1):
@@ -229,8 +232,7 @@ class Accumulator(object):
         self.console_options = console_options
 
     def add_metrics(self, *metrics):
-        """ Add metrics to the Accumulator.
-        """
+        """Add metrics to the Accumulator."""
         self.metrics.update({m.name: m for m in metrics})
 
     def summarize(self):
@@ -246,9 +248,9 @@ class Accumulator(object):
 
     def accumulate(self, **kwargs):
         for k, v in kwargs.items():
-            assert (
-                k in self.metrics
-            ), f"The metric you are trying to accumulate is not in {self}."
+            assert k in self.metrics, (
+                f"The metric you are trying to accumulate is not in {self}."
+            )
             if isinstance(v, list):
                 self.metrics[k].accumulate(*v)
             else:
@@ -264,8 +266,7 @@ class Accumulator(object):
             metric.reset()
 
     def _updatable_metrics(self, kwargs):
-        """ Return the metrics that have metargs appearing in kwargs
-        """
+        """Return the metrics that have metargs appearing in kwargs"""
         metrics = []
         for metarg in kwargs.keys():
             for metric in self.metrics.values():
@@ -291,9 +292,7 @@ class Accumulator(object):
         return args
 
     def __repr__(self):
-        return (
-            f"Accumulator[{', '.join([str(m) for m in self.metrics.values()])}]"
-        )
+        return f"Accumulator[{', '.join([str(m) for m in self.metrics.values()])}]"
 
 
 def main():
