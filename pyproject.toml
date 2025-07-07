@@ -1,6 +1,6 @@
 [project]
 name = "rlog"
-version = "0.3.0"
+version = "0.3.1"
 description = "A simple logger for reinforcement learning."
 authors = [{ name = "Florin Gogianu", email = "florin.gogianu@gmail.com" }]
 license = { file = "LICENSE" }
@@ -38,7 +38,7 @@ ignore = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.3.0"
+version = "0.3.1"
 tag_format = "v$version"
 version_files = ["pyproject.toml:version"]
 update_changelog_on_bump = true
