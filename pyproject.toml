@@ -1,0 +1,37 @@
+[project]
+name = "rlog"
+version = "0.1.1"
+description = "A simple logger for reinforcement learning."
+authors = [{ name = "Florin Gogianu", email = "florin.gogianu@gmail.com" }]
+license = { file = "LICENSE" }
+readme = "README.md"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["logging", "machine learning", "reinforcement learning"]
+requires-python = ">=3.12"
+dependencies = [
+    "termcolor>=3.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/floringogianu/rlog"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "commitizen>=4.8.3",
+    "ruff>=0.12.2",
+]
+
+[tool.ruff.lint]
+# pycodestyle, Pyflakes, pyupgrade, flake8-bugbear, flake8-simplify, isort,
+select = [ "E", "F", "UP", "B", "SIM", "I" ]
+ignore = [
+  "UP032",  # use f-string instead of `format` call
+]
