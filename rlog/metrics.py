@@ -19,7 +19,7 @@ __all__ = [
 """
 
 
-class BaseMetric(object):
+class BaseMetric:
     def __init__(
         self, name, resetable=True, emph=False, metargs=None, tb_type="scalar"
     ):
@@ -63,7 +63,7 @@ class BaseMetric(object):
         return self._tb_type
 
     def __repr__(self):
-        return "%s::%s" % (self.__class__.__name__, self._name)
+        return "{:s}::{:s}".format(self.__class__.__name__, self._name)
 
 
 class ValueMetric(BaseMetric):
@@ -225,7 +225,7 @@ def clip(x):
 FNS = {"clip": clip, "int": int}
 
 
-class Accumulator(object):
+class Accumulator:
     def __init__(self, *metrics, console_options=None):
         self.metrics = {}
         self.add_metrics(*metrics)
@@ -268,7 +268,7 @@ class Accumulator(object):
     def _updatable_metrics(self, kwargs):
         """Return the metrics that have metargs appearing in kwargs"""
         metrics = []
-        for metarg in kwargs.keys():
+        for metarg in kwargs:
             for metric in self.metrics.values():
                 if metarg in metric.metargs:
                     metrics.append(metric)
@@ -277,17 +277,17 @@ class Accumulator(object):
     def _process(self, metargs, kwargs):
         args = []
         for metarg in metargs:
-            if isinstance(metarg, (int, float)):
-                # metarg is a constant, such as and int.
+            if isinstance(metarg, int | float):
+                # metarg is a number
                 args.append(metarg)
             elif "(" in metarg:
-                # metarg is a function such as "clip(reward)".
+                # metarg is a function such as "clip(reward)"
                 fn_name = metarg.split("(")[0]  # get the 'f' in 'f(x)'
                 # get 'x' in 'f(x)'
                 fn_arg = re.search(r"\((.*?)\)", metarg).group(1)
                 args.append(FNS[fn_name](kwargs[fn_arg]))
             else:
-                # metarg is a string we are tracing such as "reward".
+                # metarg is a string we are tracing such as "lorem ipsum"
                 args.append(kwargs[metarg])
         return args
 

@@ -1,22 +1,23 @@
-""" RLog definition and configuration."""
+"""RLog definition and configuration."""
+
 import datetime
-import sys
 import logging
+import sys
+
+from .exception_handling import print_fancy_err
 from .filters import MaxLevelFilter
-from .handlers import TensorboardHandler, PickleHandler
+from .formatters import SummaryFormatter
+from .handlers import PickleHandler, TensorboardHandler
 from .metrics import (
     Accumulator,
-    BaseMetric,
     AvgMetric,
+    BaseMetric,
     EWMAvgMetric,
     FPSMetric,
     MaxMetric,
     SumMetric,
     ValueMetric,
 )
-from .exception_handling import print_fancy_err
-from .formatters import SummaryFormatter
-
 
 __all__ = [
     "getLogger",
@@ -88,7 +89,7 @@ class RLogger(logging.Logger):
             self.accumulator.add_metrics(*metrics)
 
     def traceAndLog(self, step, with_reset=True):
-        """ Calls both trace and summarize on the `Accumulator.summarize()`
+        """Calls both trace and summarize on the `Accumulator.summarize()`
         result. Then it calls reset.
         """
         if self.fmt is None:
@@ -103,8 +104,8 @@ class RLogger(logging.Logger):
 
 
 class TimeFilter(logging.Filter):
-    """ If there is another type of object that processes records, it might be used
-        instead of this.
+    """If there is another type of object that processes records, it might be used
+    instead of this.
     """
 
     def __init__(self, datefmt="%H:%M:%S"):
@@ -128,8 +129,7 @@ def init(  # pylint: disable=bad-continuation
     timestamp=None,
     prefix=None,
 ):
-    """ Configures a global RLogger.
-    """
+    """Configures a global RLogger."""
     global ROOT
 
     logging.setLoggerClass(RLogger)
@@ -144,7 +144,11 @@ def init(  # pylint: disable=bad-continuation
     if prefix:
         fmt = prefix + fmt
 
-    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt, style="{",)
+    formatter = logging.Formatter(
+        fmt=fmt,
+        datefmt=datefmt,
+        style="{",
+    )
 
     stdout_ch = logging.StreamHandler(sys.stdout)
     stderr_ch = logging.StreamHandler(sys.stderr)

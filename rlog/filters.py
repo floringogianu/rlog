@@ -1,10 +1,10 @@
-""" Logger filters.
-"""
+"""Logger filters."""
+
 import logging
 
 
 class MaxLevelFilter(logging.Filter):
-    """ Filters (lets through) all messages with level < LEVEL
+    """Filters (lets through) all messages with level < LEVEL
 
     https://stackoverflow.com/a/24956305/1493507
     """

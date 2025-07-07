@@ -1,11 +1,10 @@
-""" Extra Handlers that can handle structured LogRecords.
-"""
+"""Extra Handlers that can handle structured LogRecords."""
+
 import logging
 import pickle
-from pathlib import Path
 from datetime import datetime
-import numpy as np
-import traceback
+from pathlib import Path
+
 from .exception_handling import print_fancy_err
 
 try:
@@ -22,7 +21,7 @@ __all__ = ["PickleHandler", "TensorboardHandler"]
 
 
 class PickleHandler(logging.Handler):
-    """ A Handler that writes `logging.LogRecord`s to pickle files.
+    """A Handler that writes `logging.LogRecord`s to pickle files.
     TODO: Check the performance?
     """
 
@@ -48,8 +47,8 @@ class PickleHandler(logging.Handler):
         self._save(record.name, data)
 
     def _maybe_load(self, logger_name):
-        """ For commodity reasons we create a pickle file per logger.
-            If a pickle exists it will be loaded in memory.
+        """For commodity reasons we create a pickle file per logger.
+        If a pickle exists it will be loaded in memory.
         """
         file_name = logger_name.replace(".", "_")
         file_path = Path(self.log_dir, f"{self.timestamp}_{file_name}.pkl")
@@ -102,8 +101,7 @@ class PickleHandler(logging.Handler):
 
 
 class TensorboardHandler(logging.Handler):
-    """ A Handler using the Tensorboard SummaryWriter.
-    """
+    """A Handler using the Tensorboard SummaryWriter."""
 
     def __init__(self, log_dir):
         logging.Handler.__init__(self)
@@ -169,8 +167,7 @@ class TensorboardHandler(logging.Handler):
 
     def _add_histogram(self, tag, step, values):
         if isinstance(values, list):
-            flat = np.hstack(values)  # flatten if that's the case
-            self.writer.add_histogram(tag, flat, global_step=step)
+            self.writer.add_histogram(tag, values, global_step=step)
         else:
             raise ValueError("There should be a list of values...")
 
