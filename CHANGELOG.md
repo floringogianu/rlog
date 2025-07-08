@@ -1,3 +1,9 @@
+## v0.3.2 (2025-07-08)
+
+### Fix
+
+- expose EpisodicMetric
+
 ## v0.3.1 (2025-07-07)
 
 ### Fix
