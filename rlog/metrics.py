@@ -220,7 +220,7 @@ class FPSMetric(BaseMetric):
 
 
 def clip(x):
-    return 1 if x > 0 else 0
+    return max(min(1, x), -1)
 
 
 FNS = {"clip": clip, "int": int}
