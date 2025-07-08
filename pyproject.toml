@@ -28,6 +28,9 @@ dev = [
     "commitizen>=4.8.3",
     "ruff>=0.12.2",
 ]
+play = [
+    "ipython>=9.4.0",
+]
 
 [tool.ruff.lint]
 # pycodestyle, Pyflakes, pyupgrade, flake8-bugbear, flake8-simplify, isort,
