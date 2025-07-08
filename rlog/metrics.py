@@ -6,6 +6,7 @@ __all__ = [
     "Accumulator",
     "AvgMetric",
     "BaseMetric",
+    "EpisodicMetric",
     "EWMAvgMetric",
     "FPSMetric",
     "MaxMetric",
@@ -251,7 +252,7 @@ class Accumulator:
             assert k in self.metrics, (
                 f"The metric you are trying to accumulate is not in {self}."
             )
-            if isinstance(v, list):
+            if isinstance(v, list | tuple):
                 self.metrics[k].accumulate(*v)
             else:
                 self.metrics[k].accumulate(v)
@@ -296,11 +297,11 @@ class Accumulator:
 
 
 def main():
-    N = 200
+    N = 1000
 
     group = Accumulator(
         AvgMetric("R_per_ep"),
-        # EpisodicMetric("episodicR"),
+        EpisodicMetric("episodicR"),
         AvgMetric("rw_per_ep"),
         SumMetric("ep_cnt", resetable=False),
         FPSMetric("train_fps"),
@@ -314,7 +315,7 @@ def main():
 
         group.accumulate(
             R_per_ep=[r, int(done)],
-            # episodicR=(r, int(done)),
+            episodicR=[r, int(done)],
             ep_cnt=int(done),
             rw_per_ep=[clip(r), int(done)],
             train_fps=2,
@@ -324,16 +325,17 @@ def main():
         ep += int(done)
 
     for k, v in group.summarize().items():
-        print(f"{k}:\t {v:2.3f}")
+        if k != "extra":
+            print(f"{k}:\t {v:>9,.1f}")
 
     print("-------")
-    print(f"avg_returns:\t {(sum(control) / ep):2.3f}")
-    print(f"avg_clipped:\t {(sum([clip(x) for x in control]) / ep):2.3f}")
+    print(f"avg_returns:\t {(sum(control) / ep):>9,.1f}")
+    print(f"avg_clipped:\t {(sum([clip(x) for x in control]) / ep):>9,.1f}")
     # print(", ".join([f"{i:2.3f}" for i in control]))
 
 
 def fancy():
-    N = 300
+    N = 1000
 
     ep, control = 0, []
     # define the metrics you want to log and the arguments these metrics
@@ -360,19 +362,21 @@ def fancy():
         ep += done
 
     for k, v in log.summarize().items():
-        print(f"{k}:\t {v:2.3f}")
+        if k != "extra":
+            print(f"{k}:\t {v:>9,.1f}")
 
     print("-------")
-    print(f"ep_cnt:\t {ep:2.3f}")
-    print(f"R_per_ep:\t {(sum(control) / ep):2.3f}")
-    print(f"R_per_step:\t {(sum(control) / step):2.3f}")
-    print(f"re_per_ep:\t {(sum([clip(x) for x in control]) / ep):2.3f}")
+    print(f"ep_cnt:\t {ep:>9,.1f}")
+    print(f"R_per_ep:\t {(sum(control) / ep):>9,.1f}")
+    print(f"R_per_step:\t {(sum(control) / step):>9,.1f}")
+    print(f"re_per_ep:\t {(sum([clip(x) for x in control]) / ep):>9,.1f}")
     # print(", ".join([f"{i:2.3f}" for i in control]))
 
 
 if __name__ == "__main__":
     import random
 
+    print("\nMAIN:")
     main()
-    print("\nFANCY:")
-    fancy()
+    # print("\nFANCY:")
+    # fancy()
