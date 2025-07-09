@@ -1,3 +1,9 @@
+## v0.3.4 (2025-07-09)
+
+### Fix
+
+- counter in PickleHandler when dumping ValueMetrics.
+
 ## v0.3.3 (2025-07-08)
 
 ### Fix

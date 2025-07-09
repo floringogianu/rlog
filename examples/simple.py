@@ -1,8 +1,8 @@
-""" Simple examples.
-"""
+"""Simple examples."""
+
 import math
-import random
 import os
+import random
 from datetime import datetime
 
 import rlog
@@ -76,7 +76,6 @@ def main():
 
     mean = 0
     for step in range(1, 300_001):
-
         # make a step in the "environment"
         reward, done = reward_following_policy(step)
 
