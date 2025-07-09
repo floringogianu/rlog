@@ -86,13 +86,13 @@ class PickleHandler(logging.Handler):
         for k, v in record.msg.items():
             if k not in ("step", "extra"):
                 if isinstance(v, list):
-                    step = step - len(v)
+                    step_ = step - len(v)
                     entries = [
-                        {"step": step + i, "value": v_, "time": record.created}
+                        {"step": step_ + i, "value": v_, "time": record.created}
                         for i, v_ in enumerate(v)
                     ]
                 else:
-                    entries = [{"step": step, "value": v, "time": record.created}]
+                    entries = [{"step": step_, "value": v, "time": record.created}]
 
                 if k in data:
                     data[k].extend(entries)
