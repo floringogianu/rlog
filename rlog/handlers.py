@@ -92,7 +92,7 @@ class PickleHandler(logging.Handler):
                         for i, v_ in enumerate(v)
                     ]
                 else:
-                    entries = [{"step": step_, "value": v, "time": record.created}]
+                    entries = [{"step": step, "value": v, "time": record.created}]
 
                 if k in data:
                     data[k].extend(entries)
