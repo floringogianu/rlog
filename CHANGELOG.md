@@ -1,3 +1,9 @@
+## v0.3.6 (2025-07-23)
+
+### Fix
+
+- promote EpisodicMetric and fix constructor
+
 ## v0.3.5 (2025-07-10)
 
 ### Fix
