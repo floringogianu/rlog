@@ -171,8 +171,8 @@ class EWMAvgMetric(BaseMetric):
 
 
 class EpisodicMetric(BaseMetric):
-    def __init__(self, name, resetable=True, emph=False):
-        BaseMetric.__init__(self, name, resetable, emph)
+    def __init__(self, name, resetable=True, emph=False, metargs=None):
+        BaseMetric.__init__(self, name, resetable, emph, metargs=metargs)
         self.counter = 0
         self.partial_val = 0
 
