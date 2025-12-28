@@ -1,3 +1,9 @@
+## v0.3.7 (2025-12-28)
+
+### Fix
+
+- fix relative time wraparound and add test infrastructure
+
 ## v0.3.6 (2025-07-23)
 
 ### Fix
