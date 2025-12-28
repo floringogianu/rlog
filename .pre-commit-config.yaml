@@ -6,3 +6,13 @@ repos:
     - push
   repo: https://github.com/commitizen-tools/commitizen
   rev: v4.8.3
+- hooks:
+  - id: pytest
+    additional_dependencies: []
+    args: []
+    name: pytest
+    pass_filenames: false
+    stages:
+    - commit
+  repo: https://github.com/PyCQA/pytest
+  rev: 8.0.0

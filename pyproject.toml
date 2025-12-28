@@ -26,11 +26,19 @@ build-backend = "setuptools.build_meta"
 [dependency-groups]
 dev = [
     "commitizen>=4.8.3",
+    "pytest>=8.0.0",
     "ruff>=0.12.2",
 ]
 play = [
     "ipython>=9.4.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
 
 [tool.ruff.lint]
 # pycodestyle, Pyflakes, pyupgrade, flake8-bugbear, flake8-simplify, isort,

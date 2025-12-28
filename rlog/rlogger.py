@@ -1,6 +1,5 @@
 """RLog definition and configuration."""
 
-import datetime
 import logging
 import sys
 
@@ -113,8 +112,13 @@ class TimeFilter(logging.Filter):
         self._datefmt = datefmt
 
     def filter(self, record):
-        duration = datetime.datetime.utcfromtimestamp(record.relativeCreated / 1000.0)
-        record.relative = duration.strftime(self._datefmt)
+        total_seconds = record.relativeCreated / 1000.0
+
+        hours = int(total_seconds // 3600)
+        minutes = int((total_seconds % 3600) // 60)
+        seconds = int(total_seconds % 60)
+
+        record.relative = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         return True
 
 

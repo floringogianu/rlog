@@ -19,7 +19,7 @@ class SummaryFormatter:
             if (v is not None) and (type(v) not in (list, tuple, dict))
         }
         to_string.pop("step")
-        fmt = ", ".join([f"{k}={{{k}:2.2f}}" for k in to_string.keys()])
+        fmt = ", ".join([f"{k}={{{k}:2.2f}}" for k in to_string])
         return "[{step:06d}] " + fmt
 
     def __call__(self, **summary):
