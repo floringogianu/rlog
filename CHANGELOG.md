@@ -1,3 +1,14 @@
+## v1.0.1 (2026-09-01)
+
+### Fix
+
+- pickle handler is now streaming; add list vs value example
+- remove TRACE level, pickle and tensorboard handlers are selected by record type
+
+### Refactor
+
+- move towards a dictConfig init.
+
 ## v1.0.0 (2026-09-01)
 
 ### BREAKING CHANGE

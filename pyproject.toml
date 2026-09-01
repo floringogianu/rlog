@@ -1,6 +1,6 @@
 [project]
 name = "rlog"
-version = "1.0.0"
+version = "1.0.1"
 description = "A simple logger for reinforcement learning."
 readme = { file = "README.MD", content-type = "text/markdown" }
 authors = [{ name = "Florin Gogianu", email = "florin.gogianu@gmail.com" }]
@@ -64,6 +64,11 @@ select = ["E", "F", "UP", "B", "SIM", "I"]
 ignore = [
     "UP032", # use f-string instead of `format` call
 ]
+
+[tool.basedpyright]
+pythonVersion = "3.11"
+pythonPlatform = "All"
+typeCheckingMode = "standard"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
