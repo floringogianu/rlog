@@ -7,16 +7,6 @@ from pathlib import Path
 
 from .exception_handling import print_fancy_err
 
-try:
-    from torch.utils.tensorboard import SummaryWriter
-except ImportError:
-    # TODO: the project itself should use logging without messing things out.
-    print(
-        "[WARN] rlog: TensorBoard is available in PyTorch-Nightly (~1.1) "
-        + "and it should be available in newer version."
-    )
-
-
 __all__ = ["PickleHandler", "TensorboardHandler"]
 
 
@@ -106,15 +96,18 @@ class TensorboardHandler(logging.Handler):
     def __init__(self, log_dir):
         logging.Handler.__init__(self)
         self.log_dir = log_dir
+        # Imported here, not at module scope: `import rlog` must not require
+        # torch, and must not print anything when torch is absent.
         try:
-            self.writer = SummaryWriter(log_dir)
-        except NameError as err:
+            from torch.utils.tensorboard import SummaryWriter
+        except ImportError as err:
             print_fancy_err(
                 err,
-                issue="PyTorch >= 1.1.0 is required for logging to Tensorboard",
-                fix="pip install tensorboard; make sure PyTorch version is correct",
+                issue="TensorboardHandler requires torch and tensorboard",
+                fix="pip install 'rlog[tensorboard]'",
             )
             raise
+        self.writer = SummaryWriter(log_dir)
 
     def emit(self, record):
         if isinstance(record.msg, dict) and record.levelname == "TRACE":

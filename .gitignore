@@ -1,5 +1,5 @@
 # project
-rlog/version.py
+sota_results/
 
 # vscode
 .vscode/
@@ -13,6 +13,7 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+uv.lock
 .Python
 env/
 build/
