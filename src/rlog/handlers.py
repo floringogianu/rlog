@@ -2,7 +2,7 @@
 
 import logging
 import pickle
-from datetime import datetime
+import time
 from pathlib import Path
 from typing import Any
 
@@ -12,87 +12,73 @@ __all__ = ["PickleHandler", "TensorboardHandler"]
 
 
 class PickleHandler(logging.Handler):
-    """A Handler that writes `logging.LogRecord`s to pickle files.
-    TODO: Check the performance?
+    """A Handler that appends `logging.LogRecord`s to pickle streams.
+
+    One file per logger.
     """
 
     def __init__(self, log_dir, timestamp=None):
         logging.Handler.__init__(self)
-        self.log_dir = log_dir
-        if timestamp is None:
-            self.timestamp = int(datetime.timestamp(datetime.now()))
-        else:
-            self.timestamp = int(timestamp)
+        self.log_dir = Path(log_dir)
+        self.timestamp = int(timestamp) if timestamp is not None else int(time.time())
+        self._files = {}
 
     def emit(self, record: logging.LogRecord) -> None:
-        data = self._maybe_load(record.name)
-        if hasattr(record, "metrics"):
-            self._add_scalars(record, data)
-        else:
-            # TODO: not sure why is this here
-            self._add_text(record, data)
-        self._save(record.name, data)
-
-    def _maybe_load(self, logger_name: str) -> dict[str, Any]:
-        """For commodity reasons we create a pickle file per logger.
-        If a pickle exists it will be loaded in memory.
-        """
-        file_name = logger_name.replace(".", "_")
-        file_path = Path(self.log_dir, f"{self.timestamp}_{file_name}.pkl")
-
         try:
-            with open(file_path, "rb") as f:
-                return pickle.load(f)
-        except FileNotFoundError:
-            return {}
+            frame = self._frame(record)
+            stream = self._stream(record.name)
+            pickle.dump(frame, stream, protocol=pickle.HIGHEST_PROTOCOL)
+            stream.flush()
+        except Exception:  # noqa: BLE001
+            self.handleError(record)
 
-    def _save(self, logger_name, data):
-        file_name = logger_name.replace(".", "_")
-        file_path = Path(self.log_dir, f"{self.timestamp}_{file_name}.pkl")
+    def close(self) -> None:
+        for stream in self._files.values():
+            stream.close()
+        self._files.clear()
+        logging.Handler.close(self)
 
-        with open(file_path, "wb") as f:
-            pickle.dump(data, f)
+    def _frame(self, record: logging.LogRecord) -> dict[str, Any]:
+        if not hasattr(record, "metrics"):
+            return {
+                "kind": "text",
+                "time": record.created,
+                "level": record.levelname,
+                "msg": record.getMessage(),
+            }
 
-    def _add_text(self, record, data):
-        data.setdefault("text", []).append(record.getMessage())
-
-    def _add_scalars(self, record: logging.LogRecord, data):
-        try:
-            step = record.metrics["step"]
-        except KeyError as err:
+        if "step" not in record.metrics:
+            err = KeyError("step")
             print_fancy_err(
                 err,
-                issue="PickeHandler expects a LogRecord.metrics with a `step` field",
+                issue="PickleHandler expects a LogRecord.metrics with a `step` field",
                 fix="Make sure your call to rlog.trace() includes the `step` kw",
             )
-            raise
+            raise err
 
-        for k, v in record.metrics.items():
-            if k not in ("step", "extra"):
-                if isinstance(v, list):
-                    step_ = step - len(v)
-                    entries = [
-                        {"step": step_ + i, "value": v_, "time": record.created}
-                        for i, v_ in enumerate(v)
-                    ]
-                else:
-                    entries = [{"step": step, "value": v, "time": record.created}]
+        return {
+            "kind": "metrics",
+            "time": record.created,
+            **{k: v for k, v in record.metrics.items() if k != "extra"},
+        }
 
-                if k in data:
-                    data[k].extend(entries)
-                else:
-                    data[k] = entries
+    def _stream(self, logger_name):
+        stream = self._files.get(logger_name)
+        if stream is None:
+            lname = logger_name.replace(".", "_")
+            fname = f"{self.timestamp}_{lname}.pkl"
+            stream = self._files[logger_name] = open(self.log_dir / fname, "ab")
+        return stream
 
 
 class TensorboardHandler(logging.Handler):
-    """A Handler using the Tensorboard SummaryWriter."""
+    """A Handler that writes records with the Tensorboard SummaryWriter."""
 
     def __init__(self, log_dir):
         logging.Handler.__init__(self)
         self.log_dir = log_dir
-        # Imported here, not at module scope: `import rlog` must not require
-        # torch, and must not print anything when torch is absent.
         try:
+            import torch
             from torch.utils.tensorboard import SummaryWriter
         except ImportError as err:
             print_fancy_err(
@@ -102,66 +88,51 @@ class TensorboardHandler(logging.Handler):
             )
             raise
 
+        self._torch = torch
         self.writer = SummaryWriter(log_dir)
+        # Learned once from the `extra` payload the Accumulator sends, then
+        # kept. Only histograms need an entry; everything else is a scalar.
+        self._tb_types: dict[str, str] = {}
 
     def emit(self, record: logging.LogRecord) -> None:
-        if hasattr(record, "metrics"):
-            self._add_key_value_items(record)
-        else:
-            self._add_text(record)
-
-    def _add_text(self, record):
-        tag = f"{record.name.replace('.', '/')}/stdout"
-        self.writer.add_text(tag, record.getMessage())
-
-    def _add_key_value_items(self, record):
-        rec_name = record.name.replace(".", "/")
         try:
-            step = record.metrics["step"]
-        except KeyError as err:
+            prefix = record.name.replace(".", "/")
+            if hasattr(record, "metrics"):
+                self._write_metrics(prefix, record.metrics)
+            else:
+                self.writer.add_text(f"{prefix}/stdout", record.getMessage())
+        except Exception:  # noqa: BLE001
+            self.handleError(record)
+
+    def close(self) -> None:
+        self.writer.close()
+        logging.Handler.close(self)
+
+    def _write_metrics(self, prefix: str, metrics: dict[str, Any]) -> None:
+        if "step" not in metrics:
+            err = KeyError("step")
             print_fancy_err(
                 err,
-                issue="TensorboardHandler wants LogRecord.metrics with a `step` field",
+                issue="TensorboardHandler expects a LogRecord.metrics with a "
+                "`step` field",
                 fix="Make sure your call to rlog.trace() includes the `step` kw",
             )
-            raise
+            raise err
 
-        tb_types = {k: "scalar" for k, v in record.metrics.items() if k != "extra"}
-        if "extra" in record.metrics:
-            for metric_name, tb_type in record.metrics["extra"]["tb_types"].items():
-                tb_types[metric_name] = tb_type
+        step = metrics["step"]
+        self._tb_types.update(metrics.get("extra", {}).get("tb_types", {}))
 
-        for metric, value in record.metrics.items():
-            if metric not in ("step", "extra"):
-                tag = f"{rec_name}/{metric}"
+        for name, value in metrics.items():
+            if name in ("step", "extra"):
+                continue
+            self._write_one(f"{prefix}/{name}", step, value, self._tb_types.get(name))
 
-                if tb_types[metric] == "scalar":
-                    self._add_scalars(tag, step, value)
-                elif tb_types[metric] == "histogram":
-                    self._add_histogram(tag, step, value)
-                else:
-                    raise ValueError("There should be a Tensorboard type.")
-
-    def _add_scalars(self, tag, step, value):
-        if isinstance(value, list):
-            step = step - len(value)
-            for i, v_ in enumerate(value):
-                self.writer.add_scalar(tag, v_, global_step=step + i)
+    def _write_one(self, tag: str, step: int, value: Any, tb_type: str | None) -> None:
+        if tb_type == "histogram":
+            self.writer.add_histogram(tag, self._torch.tensor(value), global_step=step)
+        elif isinstance(value, list):
+            # a cached metric holds one value per step, up to `step`
+            for value_step, v in enumerate(value, start=step - len(value)):
+                self.writer.add_scalar(tag, v, global_step=value_step)
         else:
             self.writer.add_scalar(tag, value, global_step=step)
-
-    def _add_histogram(self, tag, step, values):
-        try:
-            import torch as th
-        except ImportError as err:
-            print_fancy_err(
-                err,
-                issue="Histograms require 'torch'",
-                fix="pip install 'rlog[tensorboard]'",
-            )
-            raise
-        values = th.tensor(values)
-        self.writer.add_histogram(tag, values, global_step=step)
-
-    def close(self):
-        self.writer.close()

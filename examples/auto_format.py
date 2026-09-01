@@ -104,6 +104,7 @@ def main():
     rlog.trace(step=step, aux_loss=0.23)
 
     rlog.info("Run `tensorboard --logdir sota_results` to see the results.")
+    rlog.close()
 
 
 if __name__ == "__main__":

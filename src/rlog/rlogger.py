@@ -2,6 +2,8 @@
 
 import logging
 import logging.config
+import sys
+import traceback
 
 from .exception_handling import print_fancy_err
 from .filters import MaxLevelFilter
@@ -34,6 +36,7 @@ __all__ = [
     "summarize",
     "traceAndLog",
     "reset",
+    "close",
     "PickleHandler",
     "TensorboardHandler",
     "Accumulator",
@@ -310,6 +313,30 @@ def reset():
             fix="You do so by calling `addMetric(...)` first",
         )
         raise
+
+
+def close() -> None:
+    """Flush and close the handlers that `init` configured.
+
+    A normal exit does not need this: `logging.shutdown` runs at interpreter
+    exit and closes them. Use it in a notebook, before reading tensorboard
+    events in the same process, or between the runs of a sweep.
+    """
+    root = ROOT
+    if root is None:
+        return
+    for handler in root.handlers[:]:
+        try:
+            handler.acquire()
+            try:
+                handler.flush()
+                handler.close()
+            finally:
+                handler.release()
+        except Exception:  # noqa: BLE001  teardown must not raise
+            if logging.raiseExceptions:
+                traceback.print_exc(file=sys.stderr)
+        root.removeHandler(handler)
 
 
 if __name__ == "__main__":
