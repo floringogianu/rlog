@@ -107,6 +107,7 @@ class TensorboardHandler(logging.Handler):
                 fix="pip install 'rlog[tensorboard]'",
             )
             raise
+
         self.writer = SummaryWriter(log_dir)
 
     def emit(self, record):
@@ -159,10 +160,17 @@ class TensorboardHandler(logging.Handler):
             self.writer.add_scalar(tag, value, global_step=step)
 
     def _add_histogram(self, tag, step, values):
-        if isinstance(values, list):
-            self.writer.add_histogram(tag, values, global_step=step)
-        else:
-            raise ValueError("There should be a list of values...")
+        try:
+            import torch as th
+        except ImportError as err:
+            print_fancy_err(
+                err,
+                issue="Histograms require 'torch'",
+                fix="pip install 'rlog[tensorboard]'",
+            )
+            raise
+        values = th.tensor(values)
+        self.writer.add_histogram(tag, values, global_step=step)
 
     def close(self):
         self.writer.close()

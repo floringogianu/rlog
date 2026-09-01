@@ -1,3 +1,9 @@
+## v1.0.0 (2026-09-01)
+
+### Feat
+
+- **build**: update project structure and packaging; require Python >= 3.11
+
 ## v0.3.7 (2025-12-28)
 
 ### Fix
