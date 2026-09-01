@@ -1,13 +1,11 @@
 # RLog
 
-
 I got tired of configuring half-baked loggers in my Reinforcement Learning
 experimets so I wrote `RLog`, a preconfigured logger using Python's `logging`.
 
 In addition `RLog` makes it easy to log experiment stats in a RL algorithm and
 it can write this structured information to `tensorboard` event files and
 `pickles`. Additional handlers can be easily added.
-
 
 ## Demo
 
@@ -26,9 +24,9 @@ will output
 11:52:53 [  dqn][   INFO]: Logging application level stuff.
 ```
 
-This will not write to disk though. If we pass a folder path to `rlog.init()`
-a `rlog` will write to a `log.log`, to a `<logger_name>.pkl` and optionaly to
-a tensorboard event file.
+This will not write to disk though. If we pass a folder path to `rlog.init()` a
+`rlog` will write to a `log.log`, to a `<logger_name>.pkl` and optionaly to a
+tensorboard event file.
 
 ```python
 rlog.init("dqn", path="./sota_results/", tensorboard=True)
@@ -42,8 +40,8 @@ train_log = rlog.getLogger("dqn.train")
 train_log.info("Starting training... ")
 ```
 
-`RLog` provides a new `logging.TRACE` level and a new `RLogger.trace()` method
-that allows logging structured info like this:
+`RLog` provides a `RLogger.trace()` method that allows logging structured info
+like this:
 
 ```python
 train_log.trace(step=1, loss=-0.23, target_val=2.38)
@@ -52,8 +50,8 @@ train_log.trace(step=2, loss=-0.21, target_val=1.87)
 train_log.trace(step=5, loss=-0.18, target_val=1.33)
 ```
 
-Although it probably not a good idea to trace every step all the time. For
-experiments running for millions of steps we have another mechanism that
+Although it probably not a good idea to trace every step all the time.
+For experiments running for millions of steps we have another mechanism that
 accumulates values at every step and summarizes them, logging only these
 summaries.
 
@@ -95,7 +93,6 @@ eval_log = rlog.getLogger("dqn.eval")
 eval_log.info("Starting evaluation... ")
 ```
 
-
 ### How about tracing values at every step?
 
 `RLog` supports a form of caching events traced at every step through the
@@ -114,41 +111,32 @@ and in your hot loop do:
     train_log.put(err=err)
 
     if is logging_time:
-        rlog.trace(step=policy.steps, **rlog.summary())
+        rlog.trace(step=policy.steps, **rlog.summarize())
 ```
 
+## Structured data
+
+By default, `rlog` writes to:
+
+- `stdout`/`stderr` according to the logging levels
+- every text record or above `level` also goes to a log.log
+- recorder metrics go to `.pkl` files, one per logger
+- same for tensorboard, if `rlog.init(...,tensorboard=True)`
 
 ## Logging Levels
 
-The logging levels are now:
+The logging levels are:
 
-| Level          | Numeric value |
-| -------------- |:-------------:|
-| CRITICAL       | 50            |
-| ERROR          | 40            |
-| WARNING        | 30            |
-| INFO           | 20            |
-| **TRACE**      | **15**        |
-| DEBUG          | 10            |
-| NOTSET         | 0             |
+| Level    | Numeric value |
+| -------- | :-----------: |
+| CRITICAL |      50       |
+| ERROR    |      40       |
+| WARNING  |      30       |
+| **INFO** |    **20**     |
+| DEBUG    |      10       |
+| NOTSET   |       0       |
 
-- `RLog` is configured with `TRACE` 
-- the `StreamHandler` writing to the console and `FileHandler` writing to the
-the text file are configured as `INFO` in order to avoid dumping the data
-buffered by `rlog.ValueMetric`
-- the structured handlers such as `PickleHandler` and `TensorboardHandler`
-are configured to `TRACE` levels and are logging this data to disk.
-
-
-## Ok, so what's the trick?
-
-Well the code is largely untested but I plan using it daily so expect many
-changes.
-
-
-## To Do
-
-- [ ] A nicer formatter for the structured data.
-- [ ] Easier configuration instead of the monolithic `rlog.init()`.
-- [ ] Do some performance testing.
-- [ ] Further adjust the API so that it stays close to `logging` module.
+Levels control the console and the text file.
+They do not control the structured output.
+A metrics record reaches the pickle file and the tensorboard file whatever level you pass, because those two handlers select on record type.
+Use `debug()` for text you want in the pickle file but not on screen.

@@ -4,6 +4,7 @@ import logging
 import pickle
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from .exception_handling import print_fancy_err
 
@@ -23,20 +24,16 @@ class PickleHandler(logging.Handler):
         else:
             self.timestamp = int(timestamp)
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         data = self._maybe_load(record.name)
-
-        # these functions mutate `data`!
-        if isinstance(record.msg, dict) and record.levelname == "TRACE":
+        if hasattr(record, "metrics"):
             self._add_scalars(record, data)
         else:
-            # TODO: need to move this in a formatter!!
-            record.msg = str(record.msg)
+            # TODO: not sure why is this here
             self._add_text(record, data)
-
         self._save(record.name, data)
 
-    def _maybe_load(self, logger_name):
+    def _maybe_load(self, logger_name: str) -> dict[str, Any]:
         """For commodity reasons we create a pickle file per logger.
         If a pickle exists it will be loaded in memory.
         """
@@ -57,23 +54,20 @@ class PickleHandler(logging.Handler):
             pickle.dump(data, f)
 
     def _add_text(self, record, data):
-        if "text" in data:
-            data["text"].append(record.msg)
-        else:
-            data["text"] = [record.msg]
+        data.setdefault("text", []).append(record.getMessage())
 
-    def _add_scalars(self, record, data):
+    def _add_scalars(self, record: logging.LogRecord, data):
         try:
-            step = record.msg["step"]
+            step = record.metrics["step"]
         except KeyError as err:
             print_fancy_err(
                 err,
-                issue="PickeHandler expects a LogRecord.msg with a `step` field",
+                issue="PickeHandler expects a LogRecord.metrics with a `step` field",
                 fix="Make sure your call to rlog.trace() includes the `step` kw",
             )
             raise
 
-        for k, v in record.msg.items():
+        for k, v in record.metrics.items():
             if k not in ("step", "extra"):
                 if isinstance(v, list):
                     step_ = step - len(v)
@@ -110,37 +104,34 @@ class TensorboardHandler(logging.Handler):
 
         self.writer = SummaryWriter(log_dir)
 
-    def emit(self, record):
-        if isinstance(record.msg, dict) and record.levelname == "TRACE":
+    def emit(self, record: logging.LogRecord) -> None:
+        if hasattr(record, "metrics"):
             self._add_key_value_items(record)
         else:
-            # TODO: need to move this in a formatter!!
-            record.msg = str(record.msg)
             self._add_text(record)
 
     def _add_text(self, record):
-        rec_name = record.name.replace(".", "/")
-        tag = f"{rec_name}/stdout"
-        self.writer.add_text(tag, record.msg)
+        tag = f"{record.name.replace('.', '/')}/stdout"
+        self.writer.add_text(tag, record.getMessage())
 
     def _add_key_value_items(self, record):
         rec_name = record.name.replace(".", "/")
         try:
-            step = record.msg["step"]
+            step = record.metrics["step"]
         except KeyError as err:
             print_fancy_err(
                 err,
-                issue="TensorboardHandler expects a LogRecord.msg with a `step` field",
+                issue="TensorboardHandler wants LogRecord.metrics with a `step` field",
                 fix="Make sure your call to rlog.trace() includes the `step` kw",
             )
             raise
 
-        tb_types = {k: "scalar" for k, v in record.msg.items() if k != "extra"}
-        if "extra" in record.msg:
-            for metric_name, tb_type in record.msg["extra"]["tb_types"].items():
+        tb_types = {k: "scalar" for k, v in record.metrics.items() if k != "extra"}
+        if "extra" in record.metrics:
+            for metric_name, tb_type in record.metrics["extra"]["tb_types"].items():
                 tb_types[metric_name] = tb_type
 
-        for metric, value in record.msg.items():
+        for metric, value in record.metrics.items():
             if metric not in ("step", "extra"):
                 tag = f"{rec_name}/{metric}"
 

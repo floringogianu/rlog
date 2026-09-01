@@ -232,7 +232,7 @@ class Accumulator:
         self.add_metrics(*metrics)
         self.console_options = console_options
 
-    def add_metrics(self, *metrics):
+    def add_metrics(self, *metrics: BaseMetric) -> None:
         """Add metrics to the Accumulator."""
         self.metrics.update({m.name: m for m in metrics})
 

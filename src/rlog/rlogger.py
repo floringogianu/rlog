@@ -2,7 +2,6 @@
 
 import logging
 import logging.config
-from typing import Literal
 
 from .exception_handling import print_fancy_err
 from .filters import MaxLevelFilter
@@ -11,6 +10,7 @@ from .handlers import PickleHandler, TensorboardHandler
 from .metrics import (
     Accumulator,
     AvgMetric,
+    BaseMetric,
     EpisodicMetric,
     EWMAvgMetric,
     FPSMetric,
@@ -50,33 +50,22 @@ __all__ = [
 ROOT = None
 
 
-logging.TRACE = 15
-logging.addLevelName(logging.TRACE, "TRACE")
-
-
 class RLogger(logging.Logger):
     def __init__(self, log_name=None):
         logging.Logger.__init__(self, log_name)
 
         self.accumulator = None
         self.put, self.reset, self.summarize, self.fmt = None, None, None, None
-        self._xtra_kws = ("exc_info", "extra", "stack_info")  # small helper
 
-    def trace(self, *args, **kws):
-        # We break with the API for now.
-        # And yes, logger takes its '*args' as 'args'.
-        if args:
-            self._log(logging.TRACE, args[0], args[1:], **kws)
-        elif kws:
-            _xtra_kws = {k: v for k, v in kws.items() if k in self._xtra_kws}
-            self._log(logging.TRACE, kws, args, **_xtra_kws)
-        else:
-            raise TypeError("Call trace with either a message or a dict-like object.")
+    def trace(self, step: int, **metrics: dict[str, float]) -> None:
+        if not isinstance(step, int):
+            raise TypeError(
+                f"trace() needs an integer step, got {type(step).__name__}. "
+                "Use debug() or info() for text."
+            )
+        self.info("metrics", extra={"metrics": {"step": step, **metrics}})
 
-    def addMetrics(self, *metrics):
-        # TODO: Not really happy about how adding metrics changes the
-        # interface of RLogger, need to thing about something else.
-
+    def addMetrics(self, *metrics: BaseMetric) -> None:
         if self.accumulator is None:
             # configure the Accumulator
             self.accumulator = Accumulator(*metrics)
@@ -103,10 +92,20 @@ class RLogger(logging.Logger):
         return summary
 
 
+# filters  ----------------------------------------------------------------------------
+
+
+class TextRecord(logging.Filter):
+    """Pass only the records that do not carry metrics."""
+
+    def filter(self, record):
+        return not hasattr(record, "metrics")
+
+
 class TimeFilter(logging.Filter):
-    """If there is another type of object that processes records, it might be used
-    instead of this.
-    """
+    """Records the time since the start of the experiment."""
+
+    # TODO: check wether this functionality does not exist already in `logging`!
 
     def __init__(self, datefmt="%H:%M:%S"):
         super().__init__()
@@ -123,13 +122,10 @@ class TimeFilter(logging.Filter):
         return True
 
 
-LevelValues = Literal[20, 15]
-
-
 def _build_config(
     name: str,
     path: str | None = None,
-    level: LevelValues = logging.INFO,
+    level: int = logging.INFO,
     pickle: bool = True,
     tensorboard: bool = False,
     relative_time: bool = True,
@@ -145,9 +141,12 @@ def _build_config(
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {"std": {"format": fmt, "datefmt": datefmt, "style": "{"}},
+        # regular messages go to stdout and file handlers,
+        # metrics messages go to Pickle and Tensorboard handlers
         "filters": {
             "time": {"()": TimeFilter, "datefmt": datefmt},
             "below_warning": {"()": MaxLevelFilter, "level": logging.WARNING},
+            "text": {"()": TextRecord},
         },
         "handlers": {
             "stdout": {
@@ -155,17 +154,22 @@ def _build_config(
                 "stream": "ext://sys.stdout",
                 "level": level,
                 "formatter": "std",
-                "filters": ["below_warning"] + time_filter,
+                "filters": ["text", "below_warning"] + time_filter,
             },
             "stderr": {
                 "class": "logging.StreamHandler",
                 "stream": "ext://sys.stderr",
                 "level": max(level, logging.WARNING),
                 "formatter": "std",
-                "filters": time_filter,
+                "filters": ["text"] + time_filter,
             },
         },
-        "loggers": {name: {"level": logging.TRACE, "handlers": ["stdout", "stderr"]}},
+        "loggers": {
+            name: {
+                "level": logging.DEBUG,
+                "handlers": ["stdout", "stderr"],
+            }
+        },
     }
     if path:
         cfg["handlers"]["file"] = {
@@ -173,19 +177,18 @@ def _build_config(
             "filename": f"{path}/log.log",
             "level": level,
             "formatter": "std",
+            "filters": ["text"],
         }
         if pickle:
             cfg["handlers"]["pickle"] = {
                 "()": PickleHandler,
                 "log_dir": path,
                 "timestamp": pkl_timestamp_fmt,
-                "level": logging.TRACE,
             }
         if tensorboard:
             cfg["handlers"]["tensorboard"] = {
                 "()": TensorboardHandler,
                 "log_dir": path,
-                "level": logging.TRACE,
             }
         cfg["loggers"][name]["handlers"] = list(cfg["handlers"])
     return cfg
@@ -194,7 +197,7 @@ def _build_config(
 def init(
     name: str,
     path: str | None = None,
-    level: LevelValues = logging.INFO,
+    level: int = logging.INFO,
     pickle: bool = True,
     tensorboard: bool = False,
     relative_time: bool = True,

@@ -1,8 +1,8 @@
-""" Simple examples.
-"""
+"""Simple examples."""
+
 import math
-import random
 import os
+import random
 from datetime import datetime
 
 import rlog
@@ -42,9 +42,9 @@ def main():
     train_log.info("Starting training... ")
 
     for step in range(5):
-        # probably not a good idea to call this every step if it is a hot loop?
-        # also this will not be logged to the console or to the text file
-        # since the default log-level for these two is INFO.
+        # not a good idea to call this every step if it is a hot loop!
+        # will not be logged to the console or to the text file,
+        # but only to the other FileHandlers like Pickle and Tensorboard.
         train_log.trace(step=step, aux_loss=7.23 - step)
 
     # but we can register metrics that will accumulate traced events
@@ -58,7 +58,7 @@ def main():
         # by the number of `done=True`, aka mean reward per episode
         rlog.AvgMetric("R_per_ep", metargs=["reward", "done"]),
         # same but keeps a running average instead (experimental).
-        rlog.AvgMetric("RunR", eps=0.9, metargs=["reward", "done"]),
+        rlog.EWMAvgMetric("RunR", metargs=["reward", "done"]),
         # same as above but now we divide by the number of rewards
         rlog.AvgMetric("R_per_step", metargs=["reward", 1]),
         # same but with clipped rewards (to +- 1)
@@ -67,14 +67,11 @@ def main():
         rlog.FPSMetric("train_fps", metargs=["frame_no"]),
         # caches all the values it receives and inserts them into a
         # tensorboad.summary.histogram every time you call `log.trace`
-        rlog.ValueMetric(
-            "gaussians", metargs=["sample"], tb_type="histogram"
-        ),
+        rlog.ValueMetric("gaussians", metargs=["sample"], tb_type="histogram"),
     )
 
     mean = 0
     for step in range(1, 300_001):
-
         # make a step in the "environment"
         reward, done = reward_following_policy(step)
 
@@ -97,7 +94,7 @@ def main():
             train_log.reset()
             mean += 1
 
-    train_log.trace("But we can continue tracing stuff manually...")
+    train_log.info("But we can continue tracing stuff manually...")
     # inlcuding structured stuff as long as we provide a `step` keyarg
     train_log.trace(step=step, aux_loss=0.23)
 

@@ -46,9 +46,9 @@ def main():
     )
 
     for step in range(5):
-        # probably not a good idea to call this every step if it is a hot loop?
-        # also this will not be logged to the console or to the text file
-        # since the default log-level for these two is INFO.
+        # not a good idea to call this every step if it is a hot loop!
+        # will not be logged to the console or to the text file,
+        # but only to the other FileHandlers like Pickle and Tensorboard.
         rlog.trace(step=step, aux_loss=7.23 - step)
 
     # but we can register metrics that will accumulate traced events
@@ -62,7 +62,7 @@ def main():
         # by the number of `done=True`, aka mean reward per episode
         rlog.AvgMetric("R_per_ep", metargs=["reward", "done"]),
         # same but keeps a running average instead (experimental).
-        rlog.AvgMetric("RunR", metargs=["reward", "done"]),
+        rlog.EWMAvgMetric("RunR", metargs=["reward", "done"]),
         # same as above but now we divide by the number of rewards
         rlog.AvgMetric("R_per_step", metargs=["reward", 1]),
         # same but with clipped rewards (to +- 1)
@@ -99,7 +99,7 @@ def main():
             rlog.traceAndLog(step)
             mean += 1
 
-    rlog.trace("But we can continue tracing stuff manually...")
+    rlog.info("But we can continue tracing stuff manually...")
     # inlcuding structured stuff as long as we provide a `step` keyarg
     rlog.trace(step=step, aux_loss=0.23)
 
