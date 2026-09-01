@@ -1,7 +1,8 @@
 """RLog definition and configuration."""
 
 import logging
-import sys
+import logging.config
+from typing import Literal
 
 from .exception_handling import print_fancy_err
 from .filters import MaxLevelFilter
@@ -122,75 +123,101 @@ class TimeFilter(logging.Filter):
         return True
 
 
-def init(  # pylint: disable=bad-continuation
-    name,
-    path=None,
-    level=logging.INFO,
-    pickle=True,
-    tensorboard=False,
-    relative_time=False,
-    datefmt="%H:%M:%S",
-    timestamp=None,
-    prefix=None,
+LevelValues = Literal[20, 15]
+
+
+def _build_config(
+    name: str,
+    path: str | None = None,
+    level: LevelValues = logging.INFO,
+    pickle: bool = True,
+    tensorboard: bool = False,
+    relative_time: bool = True,
+    datefmt: str = "%H:%M:%S",
+    pkl_timestamp_fmt: str | None = None,
+    prefix: str | None = None,
 ):
-    """Configures a global RLogger."""
-    global ROOT
+    ts = "{relative}" if relative_time else "{asctime}"
+    fmt = (prefix or "") + ts + " [{levelname[0]}] {name}: {message}"
+    time_filter = ["time"] if relative_time else []
 
-    logging.setLoggerClass(RLogger)
-    ROOT = logging.getLogger(name)
-    ROOT.setLevel(logging.TRACE)
-
-    if relative_time:
-        fmt = "{relative} [{levelname[0]}] {name}: {message}"
-    else:
-        fmt = "{asctime} [{levelname[0]}] {name}: {message}"
-
-    if prefix:
-        fmt = prefix + fmt
-
-    formatter = logging.Formatter(
-        fmt=fmt,
-        datefmt=datefmt,
-        style="{",
-    )
-
-    stdout_ch = logging.StreamHandler(sys.stdout)
-    stderr_ch = logging.StreamHandler(sys.stderr)
-
-    # add relative time filter
-    if relative_time:
-        stdout_ch.addFilter(TimeFilter(datefmt=datefmt))
-        stderr_ch.addFilter(TimeFilter(datefmt=datefmt))
-
-    # add levels
-    stdout_ch.addFilter(MaxLevelFilter(logging.WARNING))
-    stdout_ch.setLevel(level)
-    stderr_ch.setLevel(max(level, logging.WARNING))
-
-    # set the formatter
-    stdout_ch.setFormatter(formatter)
-    stderr_ch.setFormatter(formatter)
-
-    ROOT.handlers.clear()
-
-    ROOT.addHandler(stdout_ch)
-    ROOT.addHandler(stderr_ch)
-
+    cfg = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {"std": {"format": fmt, "datefmt": datefmt, "style": "{"}},
+        "filters": {
+            "time": {"()": TimeFilter, "datefmt": datefmt},
+            "below_warning": {"()": MaxLevelFilter, "level": logging.WARNING},
+        },
+        "handlers": {
+            "stdout": {
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout",
+                "level": level,
+                "formatter": "std",
+                "filters": ["below_warning"] + time_filter,
+            },
+            "stderr": {
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stderr",
+                "level": max(level, logging.WARNING),
+                "formatter": "std",
+                "filters": time_filter,
+            },
+        },
+        "loggers": {name: {"level": logging.TRACE, "handlers": ["stdout", "stderr"]}},
+    }
     if path:
-        fh = logging.FileHandler(f"{path}/log.log")
-        fh.setFormatter(formatter)
-        fh.setLevel(level)
-        ROOT.addHandler(fh)
-
+        cfg["handlers"]["file"] = {
+            "class": "logging.FileHandler",
+            "filename": f"{path}/log.log",
+            "level": level,
+            "formatter": "std",
+        }
         if pickle:
-            ph = PickleHandler(path, timestamp=timestamp)
-            ph.setLevel(logging.TRACE)
-            ROOT.addHandler(ph)
-
+            cfg["handlers"]["pickle"] = {
+                "()": PickleHandler,
+                "log_dir": path,
+                "timestamp": pkl_timestamp_fmt,
+                "level": logging.TRACE,
+            }
         if tensorboard:
-            swh = TensorboardHandler(path)
-            swh.setLevel(logging.TRACE)
-            ROOT.addHandler(swh)
+            cfg["handlers"]["tensorboard"] = {
+                "()": TensorboardHandler,
+                "log_dir": path,
+                "level": logging.TRACE,
+            }
+        cfg["loggers"][name]["handlers"] = list(cfg["handlers"])
+    return cfg
+
+
+def init(
+    name: str,
+    path: str | None = None,
+    level: LevelValues = logging.INFO,
+    pickle: bool = True,
+    tensorboard: bool = False,
+    relative_time: bool = True,
+    datefmt: str = "%H:%M:%S",
+    pkl_timestamp_fmt: str | None = None,
+    prefix: str | None = None,
+):
+    global ROOT
+    logging.setLoggerClass(RLogger)  # still imperative
+    logging.config.dictConfig(
+        _build_config(
+            name,
+            path,
+            level,
+            pickle,
+            tensorboard,
+            relative_time,
+            datefmt,
+            pkl_timestamp_fmt,
+            prefix,
+        )
+    )
+    ROOT = logging.getLogger(name)
 
 
 def getLogger(name):
