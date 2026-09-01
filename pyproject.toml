@@ -1,6 +1,6 @@
 [project]
 name = "rlog"
-version = "0.3.7"
+version = "1.0.0"
 description = "A simple logger for reinforcement learning."
 readme = { file = "README.MD", content-type = "text/markdown" }
 authors = [{ name = "Florin Gogianu", email = "florin.gogianu@gmail.com" }]

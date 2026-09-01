@@ -1,3 +1,11 @@
+## v1.0.0 (2026-09-01)
+
+### BREAKING CHANGE
+
+- minimum Python is now 3.11
+- the project is licensed GPL-3.0-only
+- the package moved to a src layout
+
 ## v0.3.7 (2025-12-28)
 
 ### Fix

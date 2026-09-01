@@ -1,8 +1,8 @@
-""" Simple examples.
-"""
+"""Simple examples."""
+
 import math
-import random
 import os
+import random
 from datetime import datetime
 
 import rlog
@@ -62,7 +62,7 @@ def main():
         # by the number of `done=True`, aka mean reward per episode
         rlog.AvgMetric("R_per_ep", metargs=["reward", "done"]),
         # same but keeps a running average instead (experimental).
-        rlog.AvgMetric("RunR", eps=0.9, metargs=["reward", "done"]),
+        rlog.AvgMetric("RunR", metargs=["reward", "done"]),
         # same as above but now we divide by the number of rewards
         rlog.AvgMetric("R_per_step", metargs=["reward", 1]),
         # same but with clipped rewards (to +- 1)
@@ -76,7 +76,6 @@ def main():
 
     mean = 0
     for step in range(1, 300_001):
-
         # make a step in the "environment"
         reward, done = reward_following_policy(step)
 
